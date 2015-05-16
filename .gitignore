@@ -1,0 +1,5 @@
+# ignore IDE related files
+.idea/*
+
+# ignore Data
+data/*
