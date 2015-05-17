@@ -24,3 +24,29 @@ def getQuestionAndAnswer(testStr):
 
     questionWords = question.split(' ')
     return (questionWords, answer[2:])
+
+def parseTestFeatures(TEST_FILENAME, trainFeats, trainLabels):
+    problemSet = []
+    answersSet = []
+    with open(TEST_FILENAME) as testFeatFile:
+        lineNum = 0
+        oneProblem = []
+        oneAnswers = []
+        for line in testFeatFile:
+            questionWords, answer = getQuestionAndAnswer(line)
+            if lineNum % 5 == 0:
+                if lineNum != 0:
+                    problemSet.append(oneProblem)
+                    answersSet.append(oneAnswers)
+                oneProblem = []
+                oneAnswers = []
+                for i in xrange(len(questionWords)):
+                    oneProblem.append(trainFeats[trainLabels.index(questionWords[i])])
+                    oneAnswers.append(trainFeats[trainLabels.index(answer)])
+                ++lineNum
+            else:
+                oneAnswers.append(trainFeats[trainLabels.index(answer)])
+                ++lineNum
+        problemSet.append(oneProblem)
+        answersSet.append(oneAnswers)
+    return (problemSet, answersSet)
