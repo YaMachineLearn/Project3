@@ -1,11 +1,12 @@
 import parse 		#as parse
-import dnn 			#as dnn
-import labelUtil
+# import dnn 			#as dnn
+# import labelUtil
 import time
+import dictionary
 
 # Training input files
-TRAIN_FEATURE_FILENAME = "MLDS_HW1_RELEASE_v1/fbank/train.ark"
-TRAIN_LABEL_FILENAME = "MLDS_HW1_RELEASE_v1/label/train.lab"
+TRAIN_FEATURE_FILENAME = "vec.txt"
+#TRAIN_LABEL_FILENAME = "MLDS_HW1_RELEASE_v1/label/train.lab"
 
 # Testing input file
 TEST_FEATURE_FILENAME = "MLDS_HW1_RELEASE_v1/fbank/test.ark"
@@ -28,11 +29,13 @@ currentEpoch = 1
 
 print 'Parsing...'
 t0 = time.time()
-trainFeats, trainLabels, trainFrameNames = parse.parseTrainData(TRAIN_FEATURE_FILENAME, TRAIN_LABEL_FILENAME)
-testFeats, testFrameNames = parse.parseTestData(TEST_FEATURE_FILENAME)
+trainFeats, trainLabels = parse.parseTrainFeatures(TRAIN_FEATURE_FILENAME)
+# testFeats, testFrameNames = parse.parseTestData(TEST_FEATURE_FILENAME)
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
-
+print len(trainFeats)
+print len(trainLabels)
+"""
 NEURON_NUM_LIST = [ HIDDEN_LAYER + [ len(trainFeats[0]) ] ] + HIDDEN_LAYER + [ labelUtil.LABEL_NUM ]
 
 print 'Training...'
@@ -67,4 +70,4 @@ while True:
     print 'Writing to csv file...'
     OUTPUT_CSV_FILE_NAME = "output/TEST" + modelInfo + ".csv"
     parse.outputTestLabelAsCsv(testFrameNames, testLabels, OUTPUT_CSV_FILE_NAME)
-
+"""
