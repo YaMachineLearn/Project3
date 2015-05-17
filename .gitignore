@@ -1,5 +1,8 @@
 # ignore IDE related files
 .idea/*
 
+# python compiled files
+*.pyc
+
 # ignore Data
 data/*

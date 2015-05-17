@@ -2,7 +2,6 @@ import parse 		#as parse
 # import dnn 			#as dnn
 # import labelUtil
 import time
-import dictionary
 
 # Training input files
 TRAIN_FEATURE_FILENAME = "vec.txt"
