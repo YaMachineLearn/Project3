@@ -1,4 +1,5 @@
 import re
+import numpy as np
 
 def parseTrainFeatures(VEC_FILENAME):
     trainFeats = []
@@ -17,9 +18,9 @@ def parseTrainFeatures(VEC_FILENAME):
     return (trainFeats, trainLabels)
 
 def getQuestionAndAnswer(testStr):
-    pattern = '(^\d\w\s)([\w|\s]+)( \[\w+)([\w|\s]+)'
+    pattern = '(^\d+\w\s)([\w|\s]+)( \[\w+)([\w|\s]*[^\n])(\n?)$'
     m = re.match(pattern, testStr)
-    question = m.group(2) + m.group(4)
+    question = m.group(2) + m.group(4) if m.group(4) != '' else m.group(2)
     answer = m.group(3)
 
     questionWords = question.split(' ')
@@ -41,8 +42,10 @@ def parseTestFeatures(TEST_FILENAME, trainFeats, trainLabels):
                 oneProblem = []
                 oneAnswers = []
                 for i in xrange(len(questionWords)):
-                    oneProblem.append(trainFeats[trainLabels.index(questionWords[i])])
-                    oneAnswers.append(trainFeats[trainLabels.index(answer)])
+                    problemWordVec = trainFeats[trainLabels.index(questionWords[i])] if questionWords[i] in trainLabels else np.zeros([1, 300], dtype=np.float32).flatten()
+                    answerWordVec = trainFeats[trainLabels.index(answer)] if answer in trainLabels else np.zeros([1, 300], dtype=np.float32).flatten()
+                    oneProblem.append(problemWordVec)
+                    oneAnswers.append(answerWordVec)
                 ++lineNum
             else:
                 oneAnswers.append(trainFeats[trainLabels.index(answer)])
