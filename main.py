@@ -5,6 +5,7 @@ import time
 
 # Training input files
 TRAIN_FEATURE_FILENAME = "vec.txt"
+TEST_FILENAME = "test.txt"
 #TRAIN_LABEL_FILENAME = "MLDS_HW1_RELEASE_v1/label/train.lab"
 
 # Testing input file
@@ -32,8 +33,8 @@ trainFeats, trainLabels = parse.parseTrainFeatures(TRAIN_FEATURE_FILENAME)
 # testFeats, testFrameNames = parse.parseTestData(TEST_FEATURE_FILENAME)
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
-print len(trainFeats)
-print len(trainLabels)
+
+problem, answers = parse.parseTestFeatures(TEST_FILENAME, trainFeats, trainLabels)
 """
 NEURON_NUM_LIST = [ HIDDEN_LAYER + [ len(trainFeats[0]) ] ] + HIDDEN_LAYER + [ labelUtil.LABEL_NUM ]
 
