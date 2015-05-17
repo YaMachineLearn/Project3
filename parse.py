@@ -17,39 +17,33 @@ def parseTrainFeatures(VEC_FILENAME):
 
     return (trainFeats, trainLabels)
 
-def getQuestionAndAnswer(testStr):
+def getProblemAndAnswer(testStr):
     pattern = '(^\d+\w\s)([\w|\s]+)( \[\w+)([\w|\s]*[^\n])(\n?)$'
     m = re.match(pattern, testStr)
-    question = m.group(2) + m.group(4) if m.group(4) != '' else m.group(2)
+    problem = m.group(2) + m.group(4) if m.group(4) != '' else m.group(2)
     answer = m.group(3)
 
-    questionWords = question.split(' ')
-    return (questionWords, answer[2:])
+    problemWords = problem.split(' ')
+    return (problemWords, answer[2:])
 
 def parseTestFeatures(TEST_FILENAME, trainFeats, trainLabels):
     problemSet = []
     answersSet = []
     with open(TEST_FILENAME) as testFeatFile:
-        lineNum = 0
+        lineNum = 1
         oneProblem = []
         oneAnswers = []
         for line in testFeatFile:
-            questionWords, answer = getQuestionAndAnswer(line)
+            problemWords, answer = getProblemAndAnswer(line)
+            answerWordVec = trainFeats[trainLabels.index(answer)] if answer in trainLabels else np.zeros([1, 300], dtype=np.float32).flatten()
+            oneAnswers.append(answerWordVec)
             if lineNum % 5 == 0:
-                if lineNum != 0:
-                    problemSet.append(oneProblem)
-                    answersSet.append(oneAnswers)
+                for problemWord in problemWords:
+                    problemWordVec = trainFeats[trainLabels.index(problemWord)] if problemWord in trainLabels else np.zeros([1, 300], dtype=np.float32).flatten()
+                    oneProblem.append(problemWordVec)
+                problemSet.append(oneProblem)
+                answersSet.append(oneAnswers)
                 oneProblem = []
                 oneAnswers = []
-                for i in xrange(len(questionWords)):
-                    problemWordVec = trainFeats[trainLabels.index(questionWords[i])] if questionWords[i] in trainLabels else np.zeros([1, 300], dtype=np.float32).flatten()
-                    answerWordVec = trainFeats[trainLabels.index(answer)] if answer in trainLabels else np.zeros([1, 300], dtype=np.float32).flatten()
-                    oneProblem.append(problemWordVec)
-                    oneAnswers.append(answerWordVec)
-                ++lineNum
-            else:
-                oneAnswers.append(trainFeats[trainLabels.index(answer)])
-                ++lineNum
-        problemSet.append(oneProblem)
-        answersSet.append(oneAnswers)
+            lineNum += 1
     return (problemSet, answersSet)
