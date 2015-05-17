@@ -18,7 +18,8 @@ LOAD_MODEL_FILENAME = None #"models/dnn.model" <- Change this if you want to tra
 OUTPUT_CSV_FILE_NAME = None #"output/result.csv"
 
 # Nerual Network Parameters
-HIDDEN_LAYER = [128, 128, 128]  # 3 hidden layers
+HIDDEN_LAYER = [128]  # 1 hidden layer
+BPTT_ORDER = 3
 LEARNING_RATE = 0.05
 EPOCH_NUM = 10  # number of epochs to run before saving the model
 BATCH_SIZE = 256
@@ -32,10 +33,10 @@ testFeats, testFrameNames = parse.parseTestData(TEST_FEATURE_FILENAME)
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
 
-NEURON_NUM_LIST = [ len(trainFeats[0]) ] + HIDDEN_LAYER + [ labelUtil.LABEL_NUM ]
+NEURON_NUM_LIST = [ HIDDEN_LAYER + [ len(trainFeats[0]) ] ] + HIDDEN_LAYER + [ labelUtil.LABEL_NUM ]
 
 print 'Training...'
-aDNN = dnn.dnn( NEURON_NUM_LIST, LEARNING_RATE, EPOCH_NUM, BATCH_SIZE, LOAD_MODEL_FILENAME )
+aDNN = dnn.dnn( NEURON_NUM_LIST, BPTT_ORDER, LEARNING_RATE, EPOCH_NUM, BATCH_SIZE, LOAD_MODEL_FILENAME )
 
 while True:
     t2 = time.time()

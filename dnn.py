@@ -9,38 +9,40 @@ from theano import shared
 from theano import function
 
 class dnn:
-    def __init__(self, neuronNumList, learningRate, epochNum, batchSize, LOAD_MODEL_FILENAME=None):
+    def __init__(self, neuronNumList, bpttOrder, learningRate, epochNum, batchSize, LOAD_MODEL_FILENAME=None):
         self.neuronNumList = neuronNumList    #ex: [69, 128, 128, 128, 48]
+        self.bpttOrder = bpttOrder
         self.learningRate = learningRate
         self.epochNum = epochNum
-        self.neuronNumList = neuronNumList
         self.batchSize = batchSize
         #better: check if input parameters are in correct formats
         
         self.weightMatrices = []
-        self.biasArrays = []
         if LOAD_MODEL_FILENAME is None:
             self.setRandomModel()
         else:
             self.loadModel(LOAD_MODEL_FILENAME)
         #ex: weightMatrices == [ [ [,,],[,,],...,[,,] ], [ [,,],[,,],...,[,,] ], ... ]
-        #ex: biasArrays == [ [ [0],[0],...,[0] ], [ [0],[0],...,[0] ], ... ]
         
     def train(self, trainFeats, trainLabels):
         indices = T.ivector()
         trainFeatsArray = shared(np.transpose(np.asarray(trainFeats, dtype=theano.config.floatX)))
         inputVector = trainFeatsArray[:, indices]
-        trainLabelsArray = shared(np.transpose(labelUtil.labelToArray(trainLabels)))
-        outputVectorRef = trainLabelsArray[:, indices]
-        lineIn = inputVector
-        for i in range( len(self.weightMatrices) ):
-            weightMatrix = self.weightMatrices[i]
-            biasVector = self.biasArrays[i]
-            lineOutput = T.dot(weightMatrix, lineIn) + T.extra_ops.repeat(biasVector, self.batchSize, 1)
-            lineIn = 1. / (1. + T.exp(-lineOutput)) # the output of the current layer is the input of the next layer
-        outputVector = lineIn
-        cost = T.sum(T.sqr(outputVector - outputVectorRef)) / self.batchSize
-        params = self.weightMatrices + self.biasArrays
+        # trainLabelsArray = shared(np.transpose(labelUtil.labelToArray(trainLabels)))
+        outputRef = trainLabels[:, indices]
+        self.initLastHiddenOut()
+        lineIn_h = self.lastHiddenOut
+        lineIn_i = inputVector ############# To be modified ##############
+        for i in range( self.bpttOrder ):
+            weightMatrix_h = self.weightMatrices[i][0]
+            weightMatrix_i = self.weightMatrices[i][1]
+            lineOutput = T.dot(weightMatrix_h, lineIn_h) + T.dot(weightMatrix_i, lineIn_i)
+            lineIn_h = 1. / (1. + T.exp(-lineOutput)) # the output of the current layer is the input of the next layer
+        weightMatrix_o = self.weightMatrices[self.bpttOrder][0]
+        lineOutput = T.dot(weightMatrix_o, lineIn_h)
+        outputVector = ( T.nnet.softmax(lineOutput.T) ).T # .T means transpose
+        cost = T.sum( - T.log(outputVector[:, outputRef]) ) / self.batchSize ########## To be checked ###########
+        params = self.weightMatrices
         gparams = [T.grad(cost, param) for param in params]
         train_model = function(inputs=[indices], outputs=[outputVector, cost], updates=self.update(params, gparams))
 
@@ -66,7 +68,7 @@ class dnn:
         self.calculateError(trainFeats, trainLabels)
 
     def test(self, testFeats):
-        test_model = self.getForwardFunction(testFeats, len(testFeats), self.weightMatrices, self.biasArrays)
+        test_model = self.getForwardFunction(testFeats, len(testFeats), self.weightMatrices)
         testLabels = []
         outputArray = test_model(0)
         outputMaxIndex = T.argmax(outputArray, 0).eval()
@@ -77,15 +79,14 @@ class dnn:
     def forward(self):
         pass
 
-    def getForwardFunction(self, testFeats, batchSize, weightMatrices, biasArrays):
+    def getForwardFunction(self, testFeats, batchSize, weightMatrices):
         index = T.iscalar()
         testFeatsArray = shared(np.transpose(np.asarray(testFeats, dtype=theano.config.floatX)))
         inputVectorArray = testFeatsArray[:, index * batchSize:(index + 1) * batchSize]
         lineIn = inputVectorArray
         for i in range( len(weightMatrices) ):
             weightMatrix = weightMatrices[i]
-            biasVector = biasArrays[i]
-            lineOutput = T.dot(weightMatrix, lineIn) + T.extra_ops.repeat(biasVector, batchSize, 1)
+            lineOutput = T.dot(weightMatrix, lineIn)
             lineIn = 1. / (1. + T.exp(-lineOutput)) # the output of the current layer is the input of the next layer
         outputVectorArray = lineIn
         test_model = function(inputs=[index], outputs=outputVectorArray)
@@ -101,22 +102,30 @@ class dnn:
     def calculateError(self, trainFeats, trainLabels):
         batchNum = 7   #1124823 = 3*7*29*1847
         calcErrorSize = len(trainFeats) / batchNum
-        forwardFunction = self.getForwardFunction(trainFeats, calcErrorSize, self.weightMatrices, self.biasArrays)
+        forwardFunction = self.getForwardFunction(trainFeats, calcErrorSize, self.weightMatrices)
         self.errorNum = 0
         for i in xrange(batchNum):
             forwardOutput = forwardFunction(i)
             self.errorNum += np.sum(T.argmax(forwardOutput, 0).eval() != labelUtil.labelsToIndices(trainLabels[i*calcErrorSize:(i+1)*calcErrorSize]))
         self.errorRate = self.errorNum / float(calcErrorSize * batchNum)
 
+    def initLastHiddenOut(self):
+        lastHiddenOut = shared( np.zeros( (self.neuronNumList[0][0], 1), dtype=theano.config.floatX ) )
+
     ### Model generate, save and load ###
     def setRandomModel(self):
-        for i in range( len(self.neuronNumList)-1 ):    #ex: range(5-1) => 0, 1, 2, 3
-            self.weightMatrices.append( shared( np.asarray( np.random.normal(
-                loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[i]),
-                size=(self.neuronNumList[i+1], self.neuronNumList[i])), dtype=theano.config.floatX) ) )
-            self.biasArrays.append( shared( np.asarray( np.random.normal(
-                loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[i]),
-                size=(self.neuronNumList[i+1], 1)), dtype=theano.config.floatX) ) )
+        w_h = np.asarray( np.random.normal(
+            loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[i]),
+            size=(self.neuronNumList[1], self.neuronNumList[0][0])), dtype=theano.config.floatX)
+        w_i = np.asarray( np.random.normal(
+            loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[i]),
+            size=(self.neuronNumList[1], self.neuronNumList[0][1])), dtype=theano.config.floatX)
+        w_o = np.asarray( np.random.normal(
+            loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[i]),
+            size=(self.neuronNumList[2], self.neuronNumList[1])), dtype=theano.config.floatX)
+        for i in range( 5 ):    #ex: range(5-1) => 0, 1, 2, 3
+            self.weightMatrices.append( [ shared(w_h) ] + [ shared(w_i) ] )
+        self.weightMatrices.append( shared(w_o) )
 
     def saveModel(self, SAVE_MODEL_FILENAME):
         with open(SAVE_MODEL_FILENAME, 'w') as outputModelFile:
