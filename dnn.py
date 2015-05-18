@@ -26,25 +26,26 @@ class dnn:
         
     def train(self, trainFeats, trainLabels):
         indices = T.ivector()
+        # better: trainFeatsArray should be moved outside!
         trainFeatsArray = shared(np.transpose(np.asarray(trainFeats, dtype=theano.config.floatX)))
         inputVector = trainFeatsArray[:, indices]
         # trainLabelsArray = shared(np.transpose(labelUtil.labelToArray(trainLabels)))
         outputRef = trainLabels[:, indices]
         self.initLastHiddenOut()
         lineIn_h = self.lastHiddenOut
-        lineIn_i = inputVector ############# To be modified ##############
         for i in range( self.bpttOrder ):
-            weightMatrix_h = self.weightMatrices[i][0]
-            weightMatrix_i = self.weightMatrices[i][1]
+            lineIn_i = inputVector[i] ############# To be modified ##############
+            weightMatrix_h = self.weightMatrices[2 * i]
+            weightMatrix_i = self.weightMatrices[2 * i + 1]
             lineOutput = T.dot(weightMatrix_h, lineIn_h) + T.dot(weightMatrix_i, lineIn_i)
             lineIn_h = 1. / (1. + T.exp(-lineOutput)) # the output of the current layer is the input of the next layer
-        weightMatrix_o = self.weightMatrices[self.bpttOrder][0]
+        weightMatrix_o = self.weightMatrices[2 * self.bpttOrder]
         lineOutput = T.dot(weightMatrix_o, lineIn_h)
         outputVector = ( T.nnet.softmax(lineOutput.T) ).T # .T means transpose
         cost = T.sum( - T.log(outputVector[:, outputRef]) ) / self.batchSize ########## To be checked ###########
-        params = self.weightMatrices
-        gparams = [T.grad(cost, param) for param in params]
-        train_model = function(inputs=[indices], outputs=[outputVector, cost], updates=self.update(params, gparams))
+        # params = self.weightMatrices
+        # gparams = [T.grad(cost, param) for param in params]
+        train_model = function(inputs=[indices], outputs=[outputVector, cost], updates=self.update(cost))
 
         #start training
         numOfBatches = len(trainFeats) / self.batchSize
@@ -95,8 +96,15 @@ class dnn:
     def backProp(self):
         pass
 
-    def update(self, params, gparams):
-        updates = [(param, param - self.learningRate * gparam) for param, gparam in zip(params, gparams)]
+    def update(self, cost):
+        for i in range( self.bpttOrder ):
+            totalGradW_h += T.grad(cost, self.weightMatrices[2 * i])
+            totalGradW_i += T.grad(cost, self.weightMatrices[2 * i + 1])
+        updates = []
+        for i in range( self.bpttOrder ):
+            updates.append( (self.weightMatrices[2 * i], self.weightMatrices[2 * i] - self.learningRate * totalGradW_h) )
+            updates.append( (self.weightMatrices[2 * i + 1], self.weightMatrices[2 * i + 1] - self.learningRate * totalGradW_i) )
+        updates.append( (self.weightMatrices[2 * self.bpttOrder], self.weightMatrices[2 * self.bpttOrder] - self.learningRate * T.grad(cost, self.weightMatrices[2 * self.bpttOrder])) )
         return updates
 
     def calculateError(self, trainFeats, trainLabels):
@@ -115,16 +123,17 @@ class dnn:
     ### Model generate, save and load ###
     def setRandomModel(self):
         w_h = np.asarray( np.random.normal(
-            loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[i]),
+            loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[1]),
             size=(self.neuronNumList[1], self.neuronNumList[0][0])), dtype=theano.config.floatX)
         w_i = np.asarray( np.random.normal(
-            loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[i]),
+            loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[1]),
             size=(self.neuronNumList[1], self.neuronNumList[0][1])), dtype=theano.config.floatX)
         w_o = np.asarray( np.random.normal(
-            loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[i]),
+            loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[2]),
             size=(self.neuronNumList[2], self.neuronNumList[1])), dtype=theano.config.floatX)
         for i in range( 5 ):    #ex: range(5-1) => 0, 1, 2, 3
-            self.weightMatrices.append( [ shared(w_h) ] + [ shared(w_i) ] )
+            self.weightMatrices.append( shared(w_h) )
+            self.weightMatrices.append( shared(w_i) )
         self.weightMatrices.append( shared(w_o) )
 
     def saveModel(self, SAVE_MODEL_FILENAME):
