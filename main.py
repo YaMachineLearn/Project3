@@ -6,10 +6,6 @@ import time
 # Training input files
 TRAIN_FEATURE_FILENAME = "vec.txt"
 TEST_FILENAME = "test.txt"
-#TRAIN_LABEL_FILENAME = "MLDS_HW1_RELEASE_v1/label/train.lab"
-
-# Testing input file
-TEST_FEATURE_FILENAME = "MLDS_HW1_RELEASE_v1/fbank/test.ark"
 
 # Neural Network Model saving and loading file name
 SAVE_MODEL_FILENAME = None #"models/dnn.model"
@@ -30,11 +26,44 @@ currentEpoch = 1
 print 'Parsing...'
 t0 = time.time()
 trainFeats, trainLabels = parse.parseTrainFeatures(TRAIN_FEATURE_FILENAME)
-# testFeats, testFrameNames = parse.parseTestData(TEST_FEATURE_FILENAME)
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
 
+print 'Problems preprocessing...'
+t0 = time.time()
 problem, answers = parse.parseTestFeatures(TEST_FILENAME, trainFeats, trainLabels)
+t1 = time.time()
+print '...costs ', t1 - t0, ' seconds'
+"""
+print parse.length(problem[31][3])
+v1 = answers[31][2]
+v2 = problem[31][3]
+print parse.dotproduct(v1, v2) / (parse.length(v1) * parse.length(v2))
+"""
+
+print 'Degree calculating...'
+t0 = time.time()
+guessAnswer = []
+for i in xrange(len(answers)):
+    degSum = []
+    for j in xrange(len(answers[i])):
+        oneDegSum = 0
+        for k in xrange(len(problem[i])):
+            oneDegSum += parse.dotproduct(answers[i][j], problem[i][k])
+        degSum.append(oneDegSum)
+    guessAnswer.append(degSum.index(max(degSum)))
+t1 = time.time()
+print '...costs ', t1 - t0, ' seconds'
+
+OUTPUT_FILE = "output.csv"
+ 
+""" writing output file """
+print "writing output file..."
+with open(OUTPUT_FILE, 'w') as outputFile:
+    outputFile.write('Id,Answer\n')
+    for i in xrange(1040):
+        outputFile.write( str(i+1) + ',' + chr(97+guessAnswer[i]) + '\n' )
+
 """
 NEURON_NUM_LIST = [ HIDDEN_LAYER + [ len(trainFeats[0]) ] ] + HIDDEN_LAYER + [ labelUtil.LABEL_NUM ]
 

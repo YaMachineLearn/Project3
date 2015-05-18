@@ -1,5 +1,6 @@
 import re
 import numpy as np
+import math
 
 def parseTrainFeatures(VEC_FILENAME):
     trainFeats = []
@@ -47,3 +48,13 @@ def parseTestFeatures(TEST_FILENAME, trainFeats, trainLabels):
                 oneAnswers = []
             lineNum += 1
     return (problemSet, answersSet)
+
+def dotproduct(v1, v2):
+    return sum((a * b) for a, b in zip(v1, v2))
+
+def length(v):
+    return math.sqrt(dotproduct(v, v))
+
+def angle(v1, v2):
+    val = min(1, max(dotproduct(v1, v2) / (length(v1) * length(v2)), -1))
+    return math.acos(val)
