@@ -1,5 +1,5 @@
-import parse 		#as parse
-# import dnn 			#as dnn
+import parse
+# import dnn
 # import labelUtil
 import time
 

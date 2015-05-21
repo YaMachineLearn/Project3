@@ -16,6 +16,8 @@ class dnn:
         self.epochNum = epochNum
         self.batchSize = batchSize
         #better: check if input parameters are in correct formats
+
+        self.lastHiddenOut = self.initLastHiddenOut()
         
         self.weightMatrices = []
         if LOAD_MODEL_FILENAME is None:
@@ -25,48 +27,82 @@ class dnn:
         #ex: weightMatrices == [ [ [,,],[,,],...,[,,] ], [ [,,],[,,],...,[,,] ], ... ]
         
     def train(self, trainFeats, trainLabels):
-        indices = T.ivector()
-        # better: trainFeatsArray should be moved outside!
-        trainFeatsArray = shared(np.transpose(np.asarray(trainFeats, dtype=theano.config.floatX)))
-        inputVector = trainFeatsArray[:, indices]
-        # trainLabelsArray = shared(np.transpose(labelUtil.labelToArray(trainLabels)))
-        outputRef = trainLabels[:, indices]
-        self.initLastHiddenOut()
+        # better: trainFeatsArray should be moved outside?
+        # trainFeatsArray is zero-padded at the beginning of each sentence
+        trainSntncLengths = []
+        maxLength = 1
+        for sentence in trainFeats:
+            trainSntncLengths.append( len(sentence) )
+            if ( len(sentence) > maxLength ):
+                maxLength = len(sentence)
+        for i in xrange(len(trainFeats)):
+            trainFeats[i].extend( [ [0] * self.neuronNumList[0][1] for j in xrange(maxLength - trainSntncLengths[i]) ] )
+            trainLabels[i].extend( [0] * (maxLength - trainSntncLengths[i]) )
+        print trainLabels
+
+        # trainFeatsArray = shared( np.concatenate( (
+        #     np.zeros((len(trainFeats), self.bpttOrder - 1, self.neuronNumList[0][1]), dtype=theano.config.floatX),
+        #     np.asarray(trainFeats, dtype=theano.config.floatX) ), axis=1 ) )
+        trainFeatsArray = shared( np.asarray(trainFeats, dtype=theano.config.floatX) )
+
+
+        sntncIndex = T.iscalar('sntncIndex')
+        wordIndex = T.iscalar('wordIndex')   
+        trainLabelsArray = shared(np.asarray(trainLabels, dtype='int32'))
+        outputRef = trainLabelsArray[sntncIndex, wordIndex]
         lineIn_h = self.lastHiddenOut
-        for i in range( self.bpttOrder ):
-            lineIn_i = inputVector[i] ############# To be modified ##############
+        train_models = []
+        for i in xrange( self.bpttOrder ):
+            startIndex = T.maximum( 0, wordIndex - self.bpttOrder + 1 )
+            lineIn_i = (trainFeatsArray[sntncIndex, startIndex + i : startIndex + i + 1]).T # .T means transpose
+            # print 'feat: ', (trainFeatsArray[0,5:6]).eval()
             weightMatrix_h = self.weightMatrices[2 * i]
             weightMatrix_i = self.weightMatrices[2 * i + 1]
-            lineOutput = T.dot(weightMatrix_h, lineIn_h) + T.dot(weightMatrix_i, lineIn_i)
-            lineIn_h = 1. / (1. + T.exp(-lineOutput)) # the output of the current layer is the input of the next layer
-        weightMatrix_o = self.weightMatrices[2 * self.bpttOrder]
-        lineOutput = T.dot(weightMatrix_o, lineIn_h)
-        outputVector = ( T.nnet.softmax(lineOutput.T) ).T # .T means transpose
-        cost = T.sum( - T.log(outputVector[:, outputRef]) ) / self.batchSize ########## To be checked ###########
-        # params = self.weightMatrices
-        # gparams = [T.grad(cost, param) for param in params]
-        train_model = function(inputs=[indices], outputs=[outputVector, cost], updates=self.update(cost))
+            lineOutput_h = T.dot(weightMatrix_h, lineIn_h) + T.dot(weightMatrix_i, lineIn_i)
+            lineIn_h = 1. / (1. + T.exp(-lineOutput_h)) # the output of the current layer is the input of the next layer
 
-        #start training
-        numOfBatches = len(trainFeats) / self.batchSize
+            weightMatrix_o = self.weightMatrices[2 * self.bpttOrder]
+            lineOutput_o = T.dot(weightMatrix_o, lineIn_h)
+            outputVector = ( T.nnet.softmax(lineOutput_o.T) ).T # .T means transpose
+            cost = T.sum( - T.log(outputVector[outputRef]) ) 
+            if (i == 0):
+                lastHiddenOutUpdate = lineIn_h
+
+            train_model = function(inputs=[sntncIndex, wordIndex], outputs=[outputVector, cost], updates=self.update(cost, i, lastHiddenOutUpdate))
+            train_models.append(train_model)
+
+        # Start training...
+        # numOfBatches = len(trainFeats) / self.batchSize
+        numOfBatches = len(trainFeats)
         shuffledIndex = range(len(trainFeats))
         for epoch in xrange(self.epochNum):
             # shuffle feats and labels
             random.shuffle(shuffledIndex)
+            print '- Epoch', epoch + 1
 
-            count = 0
+            # count = 0
             sumCost = 0.
             for i in xrange(numOfBatches): #feats and labels are shuffled, so don't need random index here
-                progress = float(count + (numOfBatches * epoch)) / float(numOfBatches * self.epochNum) * 100.
-                sys.stdout.write('Epoch %d, Progress: %f%%    \r' % (epoch, progress))
-                sys.stdout.flush()
-                self.out, self.cost = train_model(shuffledIndex[i*self.batchSize:(i+1)*self.batchSize])
-                sumCost = sumCost + self.cost
-                count = count + 1
-            self.cost = sumCost / float(numOfBatches)
-            print 'Cost: ', sumCost / float(numOfBatches)
+                # progress = float(count + (numOfBatches * epoch)) / float(numOfBatches * self.epochNum) * 100.
+                # sys.stdout.write('Epoch %d, Progress: %f%%    \r' % (epoch, progress))
+                # sys.stdout.flush()
+                self.initLastHiddenOut()
+                for j in xrange( trainSntncLengths[ shuffledIndex[i] ] ):
+                    # startIndex = j + 1 - self.bpttOrder
+                    # if ( startIndex >= 0):
+                    #     self.level = self.bpttOrder
+                    # else:
+                    #     self.level = j + 1
+                    #     startIndex = 0
+                    self.wordIndex = j
+                    self.out, self.cost = ( train_models[min(j, self.bpttOrder - 1)] )(shuffledIndex[i], j)
+                    print 'Cost: ', self.cost
+                    # sumCost = sumCost + self.cost
+                # count = count + 1
+            # self.cost = sumCost / float(numOfBatches)
+            # print 'Cost: ', sumCost / float(numOfBatches)
 
-        self.calculateError(trainFeats, trainLabels)
+        # self.calculateError(trainFeats, trainLabels)
 
     def test(self, testFeats):
         test_model = self.getForwardFunction(testFeats, len(testFeats), self.weightMatrices)
@@ -96,15 +132,22 @@ class dnn:
     def backProp(self):
         pass
 
-    def update(self, cost):
-        for i in range( self.bpttOrder ):
-            totalGradW_h += T.grad(cost, self.weightMatrices[2 * i])
-            totalGradW_i += T.grad(cost, self.weightMatrices[2 * i + 1])
+    def update(self, cost, index, lastHiddenOutUpdate):
+        totalGradW_h = T.grad(cost=cost, wrt=self.weightMatrices[0])
+        totalGradW_i = T.grad(cost=cost, wrt=self.weightMatrices[1])
+        for i in range( 1, self.bpttOrder ):
+            totalGradW_h += T.grad(cost=cost, wrt=self.weightMatrices[2 * i], disconnected_inputs='warn')
+            totalGradW_i += T.grad(cost=cost, wrt=self.weightMatrices[2 * i + 1], disconnected_inputs='warn')
         updates = []
         for i in range( self.bpttOrder ):
             updates.append( (self.weightMatrices[2 * i], self.weightMatrices[2 * i] - self.learningRate * totalGradW_h) )
             updates.append( (self.weightMatrices[2 * i + 1], self.weightMatrices[2 * i + 1] - self.learningRate * totalGradW_i) )
         updates.append( (self.weightMatrices[2 * self.bpttOrder], self.weightMatrices[2 * self.bpttOrder] - self.learningRate * T.grad(cost, self.weightMatrices[2 * self.bpttOrder])) )
+
+        if (index == self.bpttOrder - 1):
+            updates.append( (self.lastHiddenOut, lastHiddenOutUpdate) )
+        elif (index == 0):
+            updates.append( (self.lastHiddenOut, self.initLastHiddenOut()) )
         return updates
 
     def calculateError(self, trainFeats, trainLabels):
@@ -118,7 +161,7 @@ class dnn:
         self.errorRate = self.errorNum / float(calcErrorSize * batchNum)
 
     def initLastHiddenOut(self):
-        lastHiddenOut = shared( np.zeros( (self.neuronNumList[0][0], 1), dtype=theano.config.floatX ) )
+        return shared( np.zeros( (self.neuronNumList[0][0], 1), dtype=theano.config.floatX ) )
 
     ### Model generate, save and load ###
     def setRandomModel(self):
@@ -131,7 +174,7 @@ class dnn:
         w_o = np.asarray( np.random.normal(
             loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[2]),
             size=(self.neuronNumList[2], self.neuronNumList[1])), dtype=theano.config.floatX)
-        for i in range( 5 ):    #ex: range(5-1) => 0, 1, 2, 3
+        for i in range( self.bpttOrder ):    #ex: range(5-1) => 0, 1, 2, 3
             self.weightMatrices.append( shared(w_h) )
             self.weightMatrices.append( shared(w_i) )
         self.weightMatrices.append( shared(w_o) )
