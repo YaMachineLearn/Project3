@@ -1,6 +1,6 @@
 import parse
 
-WORD_VECTORS_FILENAME = "vec.txt"
+WORD_VECTORS_FILENAME = "data/vec.txt"
 
 parsedWordVectors, parsedWords = parse.parseWordVectors(WORD_VECTORS_FILENAME)
 

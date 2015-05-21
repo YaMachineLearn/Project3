@@ -1,12 +1,12 @@
 import parse
 # import dnn
-import labelUtil
+# import labelUtil
 import time
 
 # Training input files
-TRAIN_FILENAME = "training.txt"
+TRAIN_FILENAME = "data/training.txt"
 TEST_FILENAME = None #"test.txt"
-PROBLEM_FILENAME = "test.txt"
+PROBLEM_FILENAME = "data/test.txt"
 
 # Neural Network Model saving and loading file name
 SAVE_MODEL_FILENAME = None #"models/dnn.model"
@@ -27,7 +27,15 @@ currentEpoch = 1
 print 'Parsing training data...'
 t0 = time.time()
 
-trainWordVectors, trainWordIndices = parse.parseTrainData(TRAIN_FILENAME)
+trainWordVectors, trainWordIndices = parse.parseData(TRAIN_FILENAME)
+
+t1 = time.time()
+print '...costs ', t1 - t0, ' seconds'
+
+print 'Parsing test data...'
+t0 = time.time()
+
+testWordVectors, testWordIndices = parse.parseData(PROBLEM_FILENAME)
 
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'

@@ -16,6 +16,4 @@ sed "s/^M//g" \
 | sed "s/[\t ]*$//g" \
 | sed "/^$/d" \
 | sed "/^[^ ]*$/d" \
-| sed "s/[^[:print:]]//g" \
-| sed "s/^/<s> /" \
-| sed "s/$/ <\/s>/"
+| sed "s/[^[:print:]]//g"

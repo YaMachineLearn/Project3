@@ -25,24 +25,25 @@ def parseWordVectors(VEC_FILENAME):
 
 import labelUtil  # Must be imported after parseWordVectors has been defined for labelUtil to use
 
-def parseTrainData(TRAIN_FILENAME):
-    trainDataWordVectors = []
-    trainDataWordIndices = []
+# DATA_FILENAME includes TRAIN_FILE_NAME or PROBLEM_FILE_NAME
+def parseData(DATA_FILENAME):
+    dataWordVectors = []
+    dataWordIndices = []
 
-    with open(TRAIN_FILENAME) as trainFeatFile:
+    with open(DATA_FILENAME) as trainFeatFile:
         for line in trainFeatFile:
             strippedLine = line.rstrip()
             if strippedLine:   #not empty after strip
                 lineList = strippedLine.split(' ')
                 oneLineWordVector = []
                 oneLineWordIndices = []
-                for i in xrange(1, len(lineList) - 1):
+                for i in range(len(lineList)):
                     oneLineWordVector.append(labelUtil.wordToVector(lineList[i]))
                     oneLineWordIndices.append(labelUtil.wordToindex(lineList[i]))
-                trainDataWordVectors.append(oneLineWordVector)
-                trainDataWordIndices.append(oneLineWordIndices)
+                dataWordVectors.append(oneLineWordVector)
+                dataWordIndices.append(oneLineWordIndices)
                 
-    return (trainDataWordVectors, trainDataWordIndices)
+    return (dataWordVectors, dataWordIndices)
 
 def getProblemAndAnswer(testStr):
     pattern = '(^\d+\w\s)([\w|\s]+)( \[\w+)([\w|\s]*[^\n])(\n?)$'
