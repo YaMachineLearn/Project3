@@ -5,8 +5,9 @@ import time
 
 # Training input files
 WORD_VECTORS_FILENAME = "vec.txt"
-TRAIN_FEATURE_FILENAME = None #"vec.txt"
-TEST_FILENAME = "test.txt"
+TRAIN_FILENAME = "training.txt"
+TEST_FILENAME = None #"test.txt"
+PROBLEM_FILENAME = "test.txt"
 
 # Neural Network Model saving and loading file name
 SAVE_MODEL_FILENAME = None #"models/dnn.model"
@@ -32,10 +33,19 @@ wordVectors, words = parse.parseWordVectors(WORD_VECTORS_FILENAME)
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
 
+print 'Parsing train feats...'
+t0 = time.time()
+
+trainFeats = parse.parseTrainFeats(TRAIN_FILENAME, wordVectors, words)
+
+t1 = time.time()
+print len(trainFeats[0])
+print '...costs ', t1 - t0, ' seconds'
+
 print 'Problems preprocessing...'
 t0 = time.time()
 
-problem, answers = parse.parseTestFeatures(TEST_FILENAME, wordVectors, words)
+problem, answers = parse.parseProblemFromWordVectors(PROBLEM_FILENAME, wordVectors, words)
 
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'

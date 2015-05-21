@@ -2,21 +2,42 @@ import re
 import numpy as np
 import math
 
-def parseWordVectors(VEC_FILENAME):
+def parseTrainFeats(TRAIN_FILENAME, wordVectors, words):
     trainFeats = []
-    trainLabels = []
 
-    #parse training features
-    with open(VEC_FILENAME) as trainFeatFile:
-        next(trainFeatFile)
+    with open(TRAIN_FILENAME) as trainFeatFile:
         for line in trainFeatFile:
             strippedLine = line.rstrip()
             if strippedLine:   #not empty after strip
                 lineList = strippedLine.split(' ')
-                trainLabels.append(lineList.pop(0))
-                trainFeats.append([float(ele) for ele in lineList])
+                oneLine = []
+                for i in xrange(1, len(lineList) - 1):
+                    try:
+                        index = words.index(lineList[i])
+                    except ValueError:
+                        oneLine.append([0.0] * 300)
+                    else:
+                        oneLine.append(wordVectors[index])
+                trainFeats.append(oneLine)
+                
+    return trainFeats
 
-    return (trainFeats, trainLabels)
+
+def parseWordVectors(VEC_FILENAME):
+    wordVectors = []
+    words = []
+
+    #parse training features
+    with open(VEC_FILENAME) as vecFile:
+        next(vecFile)
+        for line in vecFile:
+            strippedLine = line.rstrip()
+            if strippedLine:   #not empty after strip
+                lineList = strippedLine.split(' ')
+                words.append(lineList.pop(0))
+                wordVectors.append([float(ele) for ele in lineList])
+
+    return (wordVectors, words)
 
 def getProblemAndAnswer(testStr):
     pattern = '(^\d+\w\s)([\w|\s]+)( \[\w+)([\w|\s]*[^\n])(\n?)$'
@@ -27,7 +48,7 @@ def getProblemAndAnswer(testStr):
     problemWords = problem.split(' ')
     return (problemWords, answer[2:])
 
-def parseTestFeatures(TEST_FILENAME, trainFeats, trainLabels):
+def parseProblemFromWordVectors(TEST_FILENAME, wordVectors, words):
     problemSet = []
     answersSet = []
     with open(TEST_FILENAME) as testFeatFile:
@@ -36,11 +57,11 @@ def parseTestFeatures(TEST_FILENAME, trainFeats, trainLabels):
         oneAnswers = []
         for line in testFeatFile:
             problemWords, answer = getProblemAndAnswer(line)
-            answerWordVec = trainFeats[trainLabels.index(answer)] if answer in trainLabels else np.zeros([1, 300], dtype=np.float32).flatten()
+            answerWordVec = wordVectors[words.index(answer)] if answer in words else np.zeros([1, 300], dtype = np.float32).flatten()
             oneAnswers.append(answerWordVec)
             if lineNum % 5 == 0:
                 for problemWord in problemWords:
-                    problemWordVec = trainFeats[trainLabels.index(problemWord)] if problemWord in trainLabels else np.zeros([1, 300], dtype=np.float32).flatten()
+                    problemWordVec = wordVectors[words.index(problemWord)] if problemWord in words else np.zeros([1, 300], dtype=np.float32).flatten()
                     oneProblem.append(problemWordVec)
                 problemSet.append(oneProblem)
                 answersSet.append(oneAnswers)
