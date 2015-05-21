@@ -38,24 +38,26 @@ class dnn:
         for i in xrange(len(trainFeats)):
             trainFeats[i].extend( [ [0] * self.neuronNumList[0][1] for j in xrange(maxLength - trainSntncLengths[i]) ] )
             trainLabels[i].extend( [0] * (maxLength - trainSntncLengths[i]) )
-        print trainLabels
 
         # trainFeatsArray = shared( np.concatenate( (
         #     np.zeros((len(trainFeats), self.bpttOrder - 1, self.neuronNumList[0][1]), dtype=theano.config.floatX),
         #     np.asarray(trainFeats, dtype=theano.config.floatX) ), axis=1 ) )
         trainFeatsArray = shared( np.asarray(trainFeats, dtype=theano.config.floatX) )
+        trainSntncLengthsVec = shared( np.asarray(trainSntncLengths, dtype='int32') )
 
-
-        sntncIndex = T.iscalar('sntncIndex')
-        wordIndex = T.iscalar('wordIndex')   
+        # sntncIndex = T.iscalar('sntncIndex')
+        sntncIndices = T.ivector('sntncIndices')
+        wordIndex = T.iscalar('wordIndex')
         trainLabelsArray = shared(np.asarray(trainLabels, dtype='int32'))
-        outputRef = trainLabelsArray[sntncIndex, wordIndex]
+        # outputRef = trainLabelsArray[sntncIndex, wordIndex]
+        outputRef = trainLabelsArray[sntncIndices, wordIndex]
         lineIn_h = self.lastHiddenOut
         train_models = []
         for i in xrange( self.bpttOrder ):
             startIndex = T.maximum( 0, wordIndex - self.bpttOrder + 1 )
-            lineIn_i = (trainFeatsArray[sntncIndex, startIndex + i : startIndex + i + 1]).T # .T means transpose
-            # print 'feat: ', (trainFeatsArray[0,5:6]).eval()
+            # lineIn_i = (trainFeatsArray[sntncIndex, startIndex + i : startIndex + i + 1]).T # .T means transpose
+            lineIn_i = (trainFeatsArray[sntncIndices, startIndex + i]).T # .T means transpose
+            # print 'feat: ', (trainFeatsArray[0:2,2]).eval()
             weightMatrix_h = self.weightMatrices[2 * i]
             weightMatrix_i = self.weightMatrices[2 * i + 1]
             lineOutput_h = T.dot(weightMatrix_h, lineIn_h) + T.dot(weightMatrix_i, lineIn_i)
@@ -64,16 +66,18 @@ class dnn:
             weightMatrix_o = self.weightMatrices[2 * self.bpttOrder]
             lineOutput_o = T.dot(weightMatrix_o, lineIn_h)
             outputVector = ( T.nnet.softmax(lineOutput_o.T) ).T # .T means transpose
-            cost = T.sum( - T.log(outputVector[outputRef]) ) 
+            cost = shared(0.)
+            for j in xrange(self.batchSize):
+                cost -= T.switch( T.lt(wordIndex, trainSntncLengthsVec[sntncIndices[j]]), T.log(outputVector[outputRef[j], j]), 0 )
             if (i == 0):
                 lastHiddenOutUpdate = lineIn_h
 
-            train_model = function(inputs=[sntncIndex, wordIndex], outputs=[outputVector, cost], updates=self.update(cost, i, lastHiddenOutUpdate))
+            # train_model = function(inputs=[sntncIndex, wordIndex], outputs=[outputVector, cost], updates=self.update(cost, i, lastHiddenOutUpdate))
+            train_model = function(inputs=[sntncIndices, wordIndex], outputs=[outputVector, cost], updates=self.update(cost, i, lastHiddenOutUpdate))
             train_models.append(train_model)
 
         # Start training...
-        # numOfBatches = len(trainFeats) / self.batchSize
-        numOfBatches = len(trainFeats)
+        numOfBatches = len(trainFeats) / self.batchSize
         shuffledIndex = range(len(trainFeats))
         for epoch in xrange(self.epochNum):
             # shuffle feats and labels
@@ -87,7 +91,7 @@ class dnn:
                 # sys.stdout.write('Epoch %d, Progress: %f%%    \r' % (epoch, progress))
                 # sys.stdout.flush()
                 self.initLastHiddenOut()
-                for j in xrange( trainSntncLengths[ shuffledIndex[i] ] ):
+                for j in xrange( max([ trainSntncLengths[index] for index in shuffledIndex[i*self.batchSize : (i+1)*self.batchSize] ]) ):
                     # startIndex = j + 1 - self.bpttOrder
                     # if ( startIndex >= 0):
                     #     self.level = self.bpttOrder
@@ -95,12 +99,15 @@ class dnn:
                     #     self.level = j + 1
                     #     startIndex = 0
                     self.wordIndex = j
-                    self.out, self.cost = ( train_models[min(j, self.bpttOrder - 1)] )(shuffledIndex[i], j)
+                    # self.out, self.cost = ( train_models[min(j, self.bpttOrder - 1)] )(shuffledIndex[i], j)
+                    self.out, self.cost = ( train_models[min(j, self.bpttOrder - 1)] )(shuffledIndex[i*self.batchSize : (i+1)*self.batchSize], j)
                     print 'Cost: ', self.cost
+                    print 'Out: ', self.out
                     # sumCost = sumCost + self.cost
                 # count = count + 1
             # self.cost = sumCost / float(numOfBatches)
             # print 'Cost: ', sumCost / float(numOfBatches)
+            print shuffledIndex
 
         # self.calculateError(trainFeats, trainLabels)
 
@@ -161,7 +168,8 @@ class dnn:
         self.errorRate = self.errorNum / float(calcErrorSize * batchNum)
 
     def initLastHiddenOut(self):
-        return shared( np.zeros( (self.neuronNumList[0][0], 1), dtype=theano.config.floatX ) )
+        # return shared( np.zeros( (self.neuronNumList[0][0], 1), dtype=theano.config.floatX ) )
+        return shared( np.zeros( (self.neuronNumList[0][0], self.batchSize), dtype=theano.config.floatX ) )
 
     ### Model generate, save and load ###
     def setRandomModel(self):

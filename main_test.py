@@ -13,8 +13,8 @@ LOAD_MODEL_FILENAME = None
 HIDDEN_LAYER = [8]  # 1 hidden layer
 BPTT_ORDER = 3
 LEARNING_RATE = 1.0
-EPOCH_NUM = 100  # number of epochs to run before saving the model
-BATCH_SIZE = 256
+EPOCH_NUM = 20  # number of epochs to run before saving the model
+BATCH_SIZE = 2
 
 print 'Training...'
 # trainFeats = [
