@@ -189,23 +189,15 @@ class dnn:
 
     def saveModel(self, SAVE_MODEL_FILENAME):
         with open(SAVE_MODEL_FILENAME, 'w') as outputModelFile:
-            for i in xrange( len(self.weightMatrices) * 2 ):
+            for i in xrange(len(self.weightMatrices)):
                 # Saving weight matrices
-                if i % 2 == 0:
-                    weightMatrix = np.asarray(self.weightMatrices[i / 2].get_value(borrow=True, return_internal_type=True))
-                    weightMatrixDim = weightMatrix.shape  # Shape (matrix height, matrix width)
-                    for row in xrange( weightMatrixDim[0] ):
-                        for col in xrange( weightMatrixDim[1] ):
-                            outputModelFile.write(str(weightMatrix[row][col]) + ' ')
-                        outputModelFile.write('\n')
+                weightMatrix = np.asarray(self.weightMatrices[i].get_value(borrow=True, return_internal_type=True))
+                weightMatrixDim = weightMatrix.shape  # Shape (matrix height, matrix width)
+                for row in xrange(weightMatrixDim[0]):
+                    for col in xrange(weightMatrixDim[1]):
+                        outputModelFile.write(str(weightMatrix[row][col]) + ' ')
                     outputModelFile.write('\n')
-                # Saving bias arrays
-                else:
-                    biasVector = np.asarray(self.biasArrays[(i - 1) / 2].get_value(borrow=True, return_internal_type=True))
-                    biasVectorDim = biasVector.shape  # Shape (vector height, vector width)
-                    for row in xrange( biasVectorDim[0] ):
-                        outputModelFile.write(str(biasVector[row][0]) + ' ')
-                    outputModelFile.write('\n\n')
+                outputModelFile.write('\n')
 
     def loadModel(self, LOAD_MODEL_FILENAME):
         print 'Loading Neural Network Model...'
@@ -213,23 +205,14 @@ class dnn:
         with open(LOAD_MODEL_FILENAME) as modelFile:
             i = 0
             weightMatrix = []
-            biasVector = []
             for line in modelFile:
-                if i < (len(self.neuronNumList) - 1) * 2:
-                    if line == '\n':
-                        if i % 2 == 0:
-                            self.weightMatrices.append(shared(np.asarray(weightMatrix)))
-                            weightMatrix = []
-                        else:
-                            self.biasArrays.append(shared(np.asarray(biasVector)))
-                            biasVector = []
-                        i = i + 1
-                    if line.rstrip():
-                        rowList = line.rstrip().split(" ")
-                        if i % 2 == 0:
-                            weightMatrix.append([float(ele) for ele in rowList])
-                        else:
-                            for ele in rowList:
-                                biasVector.append([float(ele)])
+                if line == '\n':
+                    self.weightMatrices.append(shared(np.asarray(weightMatrix)))
+                    weightMatrix = []
+                    i += 1
+                if line.rstrip():
+                    rowList = line.rstrip().split(" ")
+                    weightMatrix.append([float(ele) for ele in rowList])
+
         t1 = time.time()
         print '...costs ', t1 - t0, ' seconds'
