@@ -7,8 +7,8 @@ parsedWordVectors, parsedWords = parse.parseWordVectors(WORD_VECTORS_FILENAME)
 OTHER_TYPE_SYMBOL = "@OTHER@"  # The symbol representing the OTHER type of word
 
 # Removing <s> and </s>
-WORD_VECTORS = parsedWordVectors[2:-1]
-WORDS = parsedWords[2:-1]
+WORD_VECTORS = parsedWordVectors[2:]
+WORDS = parsedWords[2:]
 
 # Adding the OTHER type of word to words and word vectors (OTHER -> [0.0] * 300)
 WORD_VECTORS.append([0.] * 300)
