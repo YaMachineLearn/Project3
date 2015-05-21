@@ -1,6 +1,6 @@
 import parse
 # import dnn
-# import labelUtil
+import labelUtil
 import time
 
 # Training input files
@@ -24,18 +24,18 @@ BATCH_SIZE = 256
 
 currentEpoch = 1
 
-print 'Parsing training data to word vectors...'
+print 'Parsing training data...'
 t0 = time.time()
 
-trainWordVectors = parse.parseTrainDataToWordVectors(TRAIN_FILENAME)
+trainWordVectors, trainWordIndices = parse.parseTrainData(TRAIN_FILENAME)
 
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
 
-print 'Parsing problems to word vectors...'
+print 'Parsing problems and answers...'
 t0 = time.time()
 
-problem, answers = parse.parseProblemToWordVectors(PROBLEM_FILENAME)
+problems, answers = parse.parseProblemsAndAnswers(PROBLEM_FILENAME)
 
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
@@ -48,8 +48,8 @@ for i in xrange(len(answers)):
     degSum = []
     for j in xrange(len(answers[i])):
         oneDegSum = 0
-        for k in xrange(len(problem[i])):
-            oneDegSum += parse.dotproduct(answers[i][j], problem[i][k])
+        for k in xrange(len(problems[i])):
+            oneDegSum += parse.dotproduct(answers[i][j], problems[i][k])
         degSum.append(oneDegSum)
     guessAnswer.append(degSum.index(max(degSum)))
 
