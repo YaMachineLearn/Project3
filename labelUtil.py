@@ -1,29 +1,8 @@
-import time
+import parse
 
 WORD_VECTORS_FILENAME = "vec.txt"
 
-def parseWordVectors(VEC_FILENAME):
-    print 'Parsing word vectors...'
-    t0 = time.time()
-
-    wordVectors = []
-    words = []
-
-    #parse word vectors
-    with open(VEC_FILENAME) as wordVecFile:
-        next(wordVecFile)
-        for line in wordVecFile:
-            strippedLine = line.rstrip()
-            if strippedLine:   #not empty after strip
-                lineList = strippedLine.split(' ')
-                words.append(lineList.pop(0))
-                wordVectors.append([float(ele) for ele in lineList])
-
-    t1 = time.time()
-    print '...costs ', t1 - t0, ' seconds'
-    return (wordVectors, words)
-
-parsedWordVectors, parsedWords = parseWordVectors(WORD_VECTORS_FILENAME)
+parsedWordVectors, parsedWords = parse.parseWordVectors(WORD_VECTORS_FILENAME)
 
 OTHER_TYPE_SYMBOL = "@OTHER@"  # The symbol representing the OTHER type of word
 

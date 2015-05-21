@@ -1,6 +1,29 @@
 import re
 import math
-import labelUtil
+import time
+
+def parseWordVectors(VEC_FILENAME):
+    print 'Parsing word vectors...'
+    t0 = time.time()
+
+    wordVectors = []
+    words = []
+
+    #parse word vectors
+    with open(VEC_FILENAME) as wordVecFile:
+        next(wordVecFile)
+        for line in wordVecFile:
+            strippedLine = line.rstrip()
+            if strippedLine:   #not empty after strip
+                lineList = strippedLine.split(' ')
+                words.append(lineList.pop(0))
+                wordVectors.append([float(ele) for ele in lineList])
+
+    t1 = time.time()
+    print '...costs ', t1 - t0, ' seconds'
+    return (wordVectors, words)
+
+import labelUtil  # Must be imported after parseWordVectors has been defined for labelUtil to use
 
 def parseTrainDataToWordVectors(TRAIN_FILENAME):
     trainFeats = []
