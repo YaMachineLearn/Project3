@@ -1,8 +1,8 @@
 import re
-import numpy as np
 import math
+import labelUtil
 
-def parseTrainFeats(TRAIN_FILENAME, wordVectors, words):
+def parseTrainDataToWordVectors(TRAIN_FILENAME):
     trainFeats = []
 
     with open(TRAIN_FILENAME) as trainFeatFile:
@@ -12,32 +12,10 @@ def parseTrainFeats(TRAIN_FILENAME, wordVectors, words):
                 lineList = strippedLine.split(' ')
                 oneLine = []
                 for i in xrange(1, len(lineList) - 1):
-                    try:
-                        index = words.index(lineList[i])
-                    except ValueError:
-                        oneLine.append([0.0] * 300)
-                    else:
-                        oneLine.append(wordVectors[index])
+                    oneLine.append(labelUtil.wordToVector(lineList[i]))
                 trainFeats.append(oneLine)
                 
     return trainFeats
-
-
-def parseWordVectors(VEC_FILENAME):
-    wordVectors = []
-    words = []
-
-    #parse training features
-    with open(VEC_FILENAME) as vecFile:
-        next(vecFile)
-        for line in vecFile:
-            strippedLine = line.rstrip()
-            if strippedLine:   #not empty after strip
-                lineList = strippedLine.split(' ')
-                words.append(lineList.pop(0))
-                wordVectors.append([float(ele) for ele in lineList])
-
-    return (wordVectors, words)
 
 def getProblemAndAnswer(testStr):
     pattern = '(^\d+\w\s)([\w|\s]+)( \[\w+)([\w|\s]*[^\n])(\n?)$'
@@ -48,7 +26,7 @@ def getProblemAndAnswer(testStr):
     problemWords = problem.split(' ')
     return (problemWords, answer[2:])
 
-def parseProblemFromWordVectors(TEST_FILENAME, wordVectors, words):
+def parseProblemToWordVectors(TEST_FILENAME):
     problemSet = []
     answersSet = []
     with open(TEST_FILENAME) as testFeatFile:
@@ -57,11 +35,11 @@ def parseProblemFromWordVectors(TEST_FILENAME, wordVectors, words):
         oneAnswers = []
         for line in testFeatFile:
             problemWords, answer = getProblemAndAnswer(line)
-            answerWordVec = wordVectors[words.index(answer)] if answer in words else np.zeros([1, 300], dtype = np.float32).flatten()
+            answerWordVec = labelUtil.wordToVector(answer)
             oneAnswers.append(answerWordVec)
             if lineNum % 5 == 0:
                 for problemWord in problemWords:
-                    problemWordVec = wordVectors[words.index(problemWord)] if problemWord in words else np.zeros([1, 300], dtype=np.float32).flatten()
+                    problemWordVec = labelUtil.wordToVector(problemWord)
                     oneProblem.append(problemWordVec)
                 problemSet.append(oneProblem)
                 answersSet.append(oneAnswers)

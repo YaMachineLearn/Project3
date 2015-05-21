@@ -4,7 +4,6 @@ import parse
 import time
 
 # Training input files
-WORD_VECTORS_FILENAME = "vec.txt"
 TRAIN_FILENAME = "training.txt"
 TEST_FILENAME = None #"test.txt"
 PROBLEM_FILENAME = "test.txt"
@@ -25,27 +24,18 @@ BATCH_SIZE = 256
 
 currentEpoch = 1
 
-print 'Parsing word vectors...'
+print 'Parsing training data to word vectors...'
 t0 = time.time()
 
-wordVectors, words = parse.parseWordVectors(WORD_VECTORS_FILENAME)
+trainWordVectors = parse.parseTrainDataToWordVectors(TRAIN_FILENAME)
 
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
 
-print 'Parsing train feats...'
+print 'Parsing problems to word vectors...'
 t0 = time.time()
 
-trainFeats = parse.parseTrainFeats(TRAIN_FILENAME, wordVectors, words)
-
-t1 = time.time()
-print len(trainFeats[0])
-print '...costs ', t1 - t0, ' seconds'
-
-print 'Problems preprocessing...'
-t0 = time.time()
-
-problem, answers = parse.parseProblemFromWordVectors(PROBLEM_FILENAME, wordVectors, words)
+problem, answers = parse.parseProblemToWordVectors(PROBLEM_FILENAME)
 
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
