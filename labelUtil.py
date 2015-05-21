@@ -4,14 +4,17 @@ WORD_VECTORS_FILENAME = "data/vec.txt"
 
 parsedWordVectors, parsedWords = parse.parseWordVectors(WORD_VECTORS_FILENAME)
 
+WORD_VECTOR_SIZE = len(parsedWordVectors[0])
+print WORD_VECTOR_SIZE
+
 OTHER_TYPE_SYMBOL = "@OTHER@"  # The symbol representing the OTHER type of word
 
 # Removing <s> and </s>
 WORD_VECTORS = parsedWordVectors[2:]
 WORDS = parsedWords[2:]
 
-# Adding the OTHER type of word to words and word vectors (OTHER -> [0.0] * 300)
-WORD_VECTORS.append([0.] * 300)
+# Adding the OTHER type of word to words and word vectors (OTHER -> [0.0] * WORD_VECTOR_SIZE)
+WORD_VECTORS.append([0.] * WORD_VECTOR_SIZE)
 WORDS.append(OTHER_TYPE_SYMBOL)
 
 TOTAL_WORDS = len(WORDS)  # Number of words including the OTHER type

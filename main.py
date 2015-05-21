@@ -33,7 +33,7 @@ trainWordVectors, trainWordIndices = parse.parseData(TRAIN_FILENAME)
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
 
-NEURON_NUM_LIST = [ HIDDEN_LAYER + [ len(trainWordVectors[0][0]) ] ] + HIDDEN_LAYER + [ labelUtil.TOTAL_WORDS ]
+NEURON_NUM_LIST = [ HIDDEN_LAYER + [ labelUtil.WORD_VECTOR_SIZE ] ] + HIDDEN_LAYER + [ labelUtil.TOTAL_WORDS ]
 
 print 'Training...'
 aDNN = dnn.dnn( NEURON_NUM_LIST, BPTT_ORDER, LEARNING_RATE, EPOCH_NUM, BATCH_SIZE, LOAD_MODEL_FILENAME )
