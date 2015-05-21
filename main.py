@@ -4,7 +4,8 @@ import parse
 import time
 
 # Training input files
-TRAIN_FEATURE_FILENAME = "vec.txt"
+WORD_VECTORS_FILENAME = "vec.txt"
+TRAIN_FEATURE_FILENAME = None #"vec.txt"
 TEST_FILENAME = "test.txt"
 
 # Neural Network Model saving and loading file name
@@ -12,7 +13,7 @@ SAVE_MODEL_FILENAME = None #"models/dnn.model"
 LOAD_MODEL_FILENAME = None #"models/dnn.model" <- Change this if you want to train from an existing model
 
 # Result output csv file
-OUTPUT_CSV_FILE_NAME = None #"output/result.csv"
+OUTPUT_CSV_FILENAME = "output/result.csv"
 
 # Nerual Network Parameters
 HIDDEN_LAYER = [128]  # 1 hidden layer
@@ -23,26 +24,25 @@ BATCH_SIZE = 256
 
 currentEpoch = 1
 
-print 'Parsing...'
+print 'Parsing word vectors...'
 t0 = time.time()
-trainFeats, trainLabels = parse.parseTrainFeatures(TRAIN_FEATURE_FILENAME)
+
+wordVectors, words = parse.parseWordVectors(WORD_VECTORS_FILENAME)
+
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
 
 print 'Problems preprocessing...'
 t0 = time.time()
-problem, answers = parse.parseTestFeatures(TEST_FILENAME, trainFeats, trainLabels)
+
+problem, answers = parse.parseTestFeatures(TEST_FILENAME, wordVectors, words)
+
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
-"""
-print parse.length(problem[31][3])
-v1 = answers[31][2]
-v2 = problem[31][3]
-print parse.dotproduct(v1, v2) / (parse.length(v1) * parse.length(v2))
-"""
 
-print 'Degree calculating...'
+print 'Dotproduct calculating...'
 t0 = time.time()
+
 guessAnswer = []
 for i in xrange(len(answers)):
     degSum = []
@@ -52,17 +52,17 @@ for i in xrange(len(answers)):
             oneDegSum += parse.dotproduct(answers[i][j], problem[i][k])
         degSum.append(oneDegSum)
     guessAnswer.append(degSum.index(max(degSum)))
+
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
 
-OUTPUT_FILE = "output.csv"
- 
-""" writing output file """
-print "writing output file..."
-with open(OUTPUT_FILE, 'w') as outputFile:
-    outputFile.write('Id,Answer\n')
-    for i in xrange(1040):
-        outputFile.write( str(i+1) + ',' + chr(97+guessAnswer[i]) + '\n' )
+print 'Writing output file...'
+t0 = time.time()
+
+parse.outputCsvFileFromAnswerNumbers(guessAnswer, OUTPUT_CSV_FILENAME)
+
+t1 = time.time()
+print '...costs ', t1 - t0, ' seconds'
 
 """
 NEURON_NUM_LIST = [ HIDDEN_LAYER + [ len(trainFeats[0]) ] ] + HIDDEN_LAYER + [ labelUtil.LABEL_NUM ]

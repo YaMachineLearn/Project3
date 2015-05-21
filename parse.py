@@ -2,7 +2,7 @@ import re
 import numpy as np
 import math
 
-def parseTrainFeatures(VEC_FILENAME):
+def parseWordVectors(VEC_FILENAME):
     trainFeats = []
     trainLabels = []
 
@@ -48,6 +48,12 @@ def parseTestFeatures(TEST_FILENAME, trainFeats, trainLabels):
                 oneAnswers = []
             lineNum += 1
     return (problemSet, answersSet)
+
+def outputCsvFileFromAnswerNumbers(guessAnswer, OUTPUT_FILE):
+    with open(OUTPUT_FILE, 'w') as outputFile:
+        outputFile.write('Id,Answer\n')
+        for i in xrange(1040):
+            outputFile.write(str(i + 1) + ',' + chr(97 + guessAnswer[i]) + '\n' )
 
 def dotproduct(v1, v2):
     return sum((a * b) for a, b in zip(v1, v2))
