@@ -5,7 +5,6 @@ WORD_VECTORS_FILENAME = "data/vec.txt"
 parsedWordVectors, parsedWords = parse.parseWordVectors(WORD_VECTORS_FILENAME)
 
 WORD_VECTOR_SIZE = len(parsedWordVectors[0])
-print WORD_VECTOR_SIZE
 
 OTHER_TYPE_SYMBOL = "@OTHER@"  # The symbol representing the OTHER type of word
 
