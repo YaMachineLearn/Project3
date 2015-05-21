@@ -1,6 +1,6 @@
 import parse
-# import dnn
-# import labelUtil
+import dnn
+import labelUtil
 import time
 
 # Training input files
@@ -9,7 +9,7 @@ TEST_FILENAME = None #"test.txt"
 PROBLEM_FILENAME = "data/test.txt"
 
 # Neural Network Model saving and loading file name
-SAVE_MODEL_FILENAME = None #"models/dnn.model"
+SAVE_MODEL_FILENAME = "models/rnn.model"
 LOAD_MODEL_FILENAME = None #"models/dnn.model" <- Change this if you want to train from an existing model
 
 # Result output csv file
@@ -17,10 +17,11 @@ OUTPUT_CSV_FILENAME = "output/result.csv"
 
 # Nerual Network Parameters
 HIDDEN_LAYER = [128]  # 1 hidden layer
-BPTT_ORDER = 3
+BPTT_ORDER = 4
 LEARNING_RATE = 0.05
 EPOCH_NUM = 10  # number of epochs to run before saving the model
 BATCH_SIZE = 256
+
 
 currentEpoch = 1
 
@@ -32,59 +33,18 @@ trainWordVectors, trainWordIndices = parse.parseData(TRAIN_FILENAME)
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
 
-print 'Parsing test data...'
-t0 = time.time()
-
-testWordVectors, testWordIndices = parse.parseData(PROBLEM_FILENAME)
-
-t1 = time.time()
-print '...costs ', t1 - t0, ' seconds'
-
-print 'Parsing problems and answers...'
-t0 = time.time()
-
-problems, answers = parse.parseProblemsAndAnswers(PROBLEM_FILENAME)
-
-t1 = time.time()
-print '...costs ', t1 - t0, ' seconds'
-
-print 'Dotproduct calculating...'
-t0 = time.time()
-
-guessAnswer = []
-for i in xrange(len(answers)):
-    degSum = []
-    for j in xrange(len(answers[i])):
-        oneDegSum = 0
-        for k in xrange(len(problems[i])):
-            oneDegSum += parse.dotproduct(answers[i][j], problems[i][k])
-        degSum.append(oneDegSum)
-    guessAnswer.append(degSum.index(max(degSum)))
-
-t1 = time.time()
-print '...costs ', t1 - t0, ' seconds'
-
-print 'Writing output file...'
-t0 = time.time()
-
-parse.outputCsvFileFromAnswerNumbers(guessAnswer, OUTPUT_CSV_FILENAME)
-
-t1 = time.time()
-print '...costs ', t1 - t0, ' seconds'
-
-"""
-NEURON_NUM_LIST = [ HIDDEN_LAYER + [ len(trainFeats[0]) ] ] + HIDDEN_LAYER + [ labelUtil.LABEL_NUM ]
+NEURON_NUM_LIST = [ HIDDEN_LAYER + [ len(trainWordVectors[0][0]) ] ] + HIDDEN_LAYER + [ labelUtil.TOTAL_WORDS ]
 
 print 'Training...'
 aDNN = dnn.dnn( NEURON_NUM_LIST, BPTT_ORDER, LEARNING_RATE, EPOCH_NUM, BATCH_SIZE, LOAD_MODEL_FILENAME )
 
 while True:
     t2 = time.time()
-    aDNN.train(trainFeats, trainLabels)
+    aDNN.train(trainWordVectors, trainWordIndices)
     t3 = time.time()
     print '...costs ', t3 - t2, ' seconds'
 
-    print 'Error rate: ', aDNN.errorRate
+    # print 'Error rate: ', aDNN.errorRate
 
     currentEpoch += EPOCH_NUM
     
@@ -98,13 +58,52 @@ while True:
     SAVE_MODEL_FILENAME = "models/DNN" + modelInfo + ".model"
     aDNN.saveModel(SAVE_MODEL_FILENAME)
 
-    print 'Testing...'
-    t4 = time.time()
-    testLabels = aDNN.test(testFeats)
-    t5 = time.time()
-    print '...costs', t5 - t4, ' seconds'
+    # print 'Testing...'
+    # t4 = time.time()
+    # testLabels = aDNN.test(testFeats)
+    # t5 = time.time()
+    # print '...costs', t5 - t4, ' seconds'
 
-    print 'Writing to csv file...'
-    OUTPUT_CSV_FILE_NAME = "output/TEST" + modelInfo + ".csv"
-    parse.outputTestLabelAsCsv(testFrameNames, testLabels, OUTPUT_CSV_FILE_NAME)
-"""
+    # print 'Writing to csv file...'
+    # OUTPUT_CSV_FILE_NAME = "output/TEST" + modelInfo + ".csv"
+    # parse.outputTestLabelAsCsv(testFrameNames, testLabels, OUTPUT_CSV_FILE_NAME)
+
+# print 'Parsing test data...'
+# t0 = time.time()
+
+# testWordVectors, testWordIndices = parse.parseData(PROBLEM_FILENAME)
+
+# t1 = time.time()
+# print '...costs ', t1 - t0, ' seconds'
+
+# print 'Parsing problems and answers...'
+# t0 = time.time()
+
+# problems, answers = parse.parseProblemsAndAnswers(PROBLEM_FILENAME)
+
+# t1 = time.time()
+# print '...costs ', t1 - t0, ' seconds'
+
+# print 'Dotproduct calculating...'
+# t0 = time.time()
+
+# guessAnswer = []
+# for i in xrange(len(answers)):
+#     degSum = []
+#     for j in xrange(len(answers[i])):
+#         oneDegSum = 0
+#         for k in xrange(len(problems[i])):
+#             oneDegSum += parse.dotproduct(answers[i][j], problems[i][k])
+#         degSum.append(oneDegSum)
+#     guessAnswer.append(degSum.index(max(degSum)))
+
+# t1 = time.time()
+# print '...costs ', t1 - t0, ' seconds'
+
+# print 'Writing output file...'
+# t0 = time.time()
+
+# parse.outputCsvFileFromAnswerNumbers(guessAnswer, OUTPUT_CSV_FILENAME)
+
+# t1 = time.time()
+# print '...costs ', t1 - t0, ' seconds'
