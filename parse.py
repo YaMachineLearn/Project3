@@ -35,16 +35,19 @@ def parseData(DATA_FILENAME):
             strippedLine = line.rstrip()
             if strippedLine:   #not empty after strip
                 lineList = strippedLine.split(' ')
-                oneLineWordVector = []
-                oneLineWordIndices = []
-                for i in range(len(lineList)):
-                    oneLineWordVector.append(labelUtil.wordToVector(lineList[i]))
-                    oneLineWordIndices.append(labelUtil.wordToindex(lineList[i]))
+                oneLineWordVector = [labelUtil.wordToVector(word) for word in lineList]
+                oneLineWordIndices = [labelUtil.wordToindex(word) for word in lineList]
+                # if everything goes well, the followings can be removed. --Roger
+                #oneLineWordVector = []
+                #oneLineWordIndices = []
+                #for i in range(len(lineList)):
+                #    oneLineWordVector.append(labelUtil.wordToVector(lineList[i]))
+                #    oneLineWordIndices.append(labelUtil.wordToindex(lineList[i]))
                 dataWordVectors.append(oneLineWordVector)
                 dataWordIndices.append(oneLineWordIndices)
                 
     return (dataWordVectors, dataWordIndices)
-
+"""
 def getProblemAndAnswer(testStr):
     pattern = '(^\d+\w\s)([\w|\s]+)( \[\w+)([\w|\s]*[^\n])(\n?)$'
     m = re.match(pattern, testStr)
@@ -75,7 +78,7 @@ def parseProblemsAndAnswers(TEST_FILENAME):
                 oneAnswers = []
             lineNum += 1
     return (problemSet, answersSet)
-
+"""
 def outputCsvFileFromAnswerNumbers(guessAnswer, OUTPUT_FILE):
     with open(OUTPUT_FILE, 'w') as outputFile:
         outputFile.write('Id,Answer\n')
