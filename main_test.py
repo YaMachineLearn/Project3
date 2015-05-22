@@ -26,15 +26,15 @@ trainFeats = [
     [ [0,0,0,0,0,0,0,1], [0,0,0,0,1,0,0,0], [0,0,0,0,0,1,0,0], [0,0,0,0,0,0,1,0], [0,0,1,0,0,0,0,0] ]
 ]
 trainLabels = [
-    [0,1,2,3],
-    [4,5,6,2,3]
+    [1,2,3,4],
+    [5,6,7,3,4]
 ]
 LABEL_NUM = 8
 
 NEURON_NUM_LIST = [ HIDDEN_LAYER + [ len(trainFeats[0][0]) ] ] + HIDDEN_LAYER + [ LABEL_NUM ]
 
 aDNN = dnn.dnn( NEURON_NUM_LIST, BPTT_ORDER, LEARNING_RATE, EPOCH_NUM, BATCH_SIZE, LOAD_MODEL_FILENAME )
-aDNN.train(trainFeats, trainLabels)
+aDNN.train(trainLabels)
 
 testFeats = [
     [ [0,0,0,0,0,0,0,1], [1,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0], [0,0,1,0,0,0,0,0] ],

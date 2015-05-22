@@ -26,29 +26,30 @@ class dnn:
             self.loadModel(LOAD_MODEL_FILENAME)
         #ex: weightMatrices == [ [ [,,],[,,],...,[,,] ], [ [,,],[,,],...,[,,] ], ... ]
         
-    def train(self, trainFeats, trainLabels):
+    def train(self, trainLabels):
         # better: trainFeatsArray should be moved outside?
         # trainFeatsArray is zero-padded at the beginning of each sentence
         trainSntncLengths = []
         maxLength = 1
-        for sentence in trainFeats:
+        for sentence in trainLabels:
             trainSntncLengths.append( len(sentence) )
             if ( len(sentence) > maxLength ):
                 maxLength = len(sentence)
-        for i in xrange(len(trainFeats)):
-            trainFeats[i].extend( [ [0] * self.neuronNumList[0][1] for j in xrange(maxLength - trainSntncLengths[i]) ] )
+        for i in xrange(len(trainLabels)):
+            # trainFeats[i].extend( [ [0] * self.neuronNumList[0][1] for j in xrange(maxLength - trainSntncLengths[i]) ] )
             trainLabels[i].extend( [0] * (maxLength - trainSntncLengths[i]) )
 
         # trainFeatsArray = shared( np.concatenate( (
         #     np.zeros((len(trainFeats), self.bpttOrder - 1, self.neuronNumList[0][1]), dtype=theano.config.floatX),
         #     np.asarray(trainFeats, dtype=theano.config.floatX) ), axis=1 ) )
-        trainFeatsArray = shared( np.asarray(trainFeats, dtype=theano.config.floatX) )
+        # trainFeatsArray = shared( np.asarray(trainFeats, dtype=theano.config.floatX) )
         trainSntncLengthsVec = shared( np.asarray(trainSntncLengths, dtype='int32') )
 
         # sntncIndex = T.iscalar('sntncIndex')
         sntncIndices = T.ivector('sntncIndices')
         wordIndex = T.iscalar('wordIndex')
         trainLabelsArray = shared(np.asarray(trainLabels, dtype='int32'))
+        trainFeatsArray = T.concatenate(  [ shared( np.zeros( (len(trainLabels), 1), dtype='int32' ) ), trainLabelsArray[:, 0 : maxLength -1] ], axis=1 )
         # outputRef = trainLabelsArray[sntncIndex, wordIndex]
         outputRef = trainLabelsArray[sntncIndices, wordIndex]
         lineIn_h = self.lastHiddenOut
@@ -56,8 +57,7 @@ class dnn:
         for i in xrange( self.bpttOrder ):
             startIndex = T.maximum( 0, wordIndex - self.bpttOrder + 1 )
             # lineIn_i = (trainFeatsArray[sntncIndex, startIndex + i : startIndex + i + 1]).T # .T means transpose
-            lineIn_i = (trainFeatsArray[sntncIndices, startIndex + i]).T # .T means transpose
-            # print 'feat: ', (trainFeatsArray[0:2,2]).eval()
+            lineIn_i = (wordUtil.WORD_VECTORS[trainFeatsArray[sntncIndices, startIndex + i]]).T # .T means transpose
             weightMatrix_h = self.weightMatrices[2 * i]
             weightMatrix_i = self.weightMatrices[2 * i + 1]
             lineOutput_h = T.dot(weightMatrix_h, lineIn_h) + T.dot(weightMatrix_i, lineIn_i)
@@ -77,8 +77,8 @@ class dnn:
             train_models.append(train_model)
 
         # Start training...
-        numOfBatches = len(trainFeats) / self.batchSize
-        shuffledIndex = range(len(trainFeats))
+        numOfBatches = len(trainLabels) / self.batchSize
+        shuffledIndex = range(len(trainLabels))
         for epoch in xrange(self.epochNum):
             # shuffle feats and labels
             random.shuffle(shuffledIndex)
@@ -111,14 +111,14 @@ class dnn:
 
         # self.calculateError(trainFeats, trainLabels)
 
-    def test(self, testFeats, testLabels):
+    def test(self, testLabels):
         numOfChoices = 2
-        self.lastHiddenOut = self.initLastHiddenOut(len(testFeats))
-        test_model, maxLength, testSntncLengths = self.getForwardFunction(testFeats, testLabels, len(testFeats), self.weightMatrices)
-        sntncProbs = np.ones(len(testFeats), dtype=theano.config.floatX)
+        self.lastHiddenOut = self.initLastHiddenOut(len(testLabels))
+        test_model, maxLength, testSntncLengths = self.getForwardFunction(testLabels, len(testFeats), self.weightMatrices)
+        sntncProbs = np.ones(len(testLabels), dtype=theano.config.floatX)
         for i in xrange(maxLength):
             outputArray = test_model(0, i)
-            for j in xrange(len(testFeats)):
+            for j in xrange(len(testLabels)):
                 if ( i < testSntncLengths[j] ):
                     sntncProbs[j] *= outputArray[testLabels[j][i], j]
             # print 'sntncProbs: ', sntncProbs
@@ -128,26 +128,27 @@ class dnn:
     def forward(self):
         pass
 
-    def getForwardFunction(self, testFeats, testLabels, batchSize, weightMatrices):
+    def getForwardFunction(self, testLabels, batchSize, weightMatrices):
         testSntncLengths = []
         maxLength = 1
-        for sentence in testFeats:
+        for sentence in testLabels:
             testSntncLengths.append( len(sentence) )
             if ( len(sentence) > maxLength ):
                 maxLength = len(sentence)
-        for i in xrange(len(testFeats)):
-            testFeats[i].extend( [ [0] * self.neuronNumList[0][1] for j in xrange(maxLength - testSntncLengths[i]) ] )
+        for i in xrange(len(testLabels)):
+            # testFeats[i].extend( [ [0] * self.neuronNumList[0][1] for j in xrange(maxLength - testSntncLengths[i]) ] )
             testLabels[i].extend( [0] * (maxLength - testSntncLengths[i]) )
 
-        testFeatsArray = shared( np.asarray(testFeats, dtype=theano.config.floatX) )
+        # testFeatsArray = shared( np.asarray(testFeats, dtype=theano.config.floatX) )
 
         sntncIndex = T.iscalar()
         wordIndex = T.iscalar()
         testLabelsArray = shared(np.asarray(testLabels, dtype='int32'))
+        testFeatsArray = T.concatenate(  [ shared( np.zeros( (len(testLabels), 1), dtype='int32' ) ), testLabelsArray[:, 0 : maxLength -1] ], axis=1 )
         outputRef = testLabelsArray[sntncIndex * batchSize : (sntncIndex+1) * batchSize, wordIndex]
         lineIn_h = self.lastHiddenOut
         
-        lineIn_i = (testFeatsArray[sntncIndex * batchSize : (sntncIndex+1) * batchSize, wordIndex]).T # .T means transpose
+        lineIn_i = (wordUtil.WORD_VECTORS[testFeatsArray[sntncIndex * batchSize : (sntncIndex+1) * batchSize, wordIndex]]).T # .T means transpose
         weightMatrix_h = self.weightMatrices[0]
         weightMatrix_i = self.weightMatrices[1]
         lineOutput_h = T.dot(weightMatrix_h, lineIn_h) + T.dot(weightMatrix_i, lineIn_i)
