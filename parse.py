@@ -23,7 +23,7 @@ def parseWordVectors(VEC_FILENAME):
     print '...costs ', t1 - t0, ' seconds'
     return (wordVectors, words)
 
-import labelUtil  # Must be imported after parseWordVectors has been defined for labelUtil to use
+import wordUtil  # Must be imported after parseWordVectors has been defined for labelUtil to use
 
 # DATA_FILENAME includes TRAIN_FILE_NAME or PROBLEM_FILE_NAME
 def parseData(DATA_FILENAME):
@@ -35,8 +35,8 @@ def parseData(DATA_FILENAME):
             strippedLine = line.rstrip()
             if strippedLine:   #not empty after strip
                 lineList = strippedLine.split(' ')
-                oneLineWordVector = [labelUtil.wordToVector(word) for word in lineList]
-                oneLineWordIndices = [labelUtil.wordToindex(word) for word in lineList]
+                oneLineWordVector = [wordUtil.wordToVector(word) for word in lineList]
+                oneLineWordIndices = [wordUtil.wordToindex(word) for word in lineList]
                 # if everything goes well, the followings can be removed. --Roger
                 #oneLineWordVector = []
                 #oneLineWordIndices = []

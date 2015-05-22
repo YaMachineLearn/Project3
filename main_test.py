@@ -1,6 +1,6 @@
 import parse
 import dnn
-import labelUtil
+import wordUtil
 import time
 
 # Training input files

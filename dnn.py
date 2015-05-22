@@ -1,5 +1,5 @@
 import time
-import labelUtil
+import wordUtil
 import random
 import theano
 import numpy as np
@@ -117,7 +117,7 @@ class dnn:
         outputArray = test_model(0)
         outputMaxIndex = T.argmax(outputArray, 0).eval()
         for i in xrange(len(outputMaxIndex)):
-            testLabels.append(labelUtil.LABEL_LIST[outputMaxIndex[i]])
+            testLabels.append(wordUtil.LABEL_LIST[outputMaxIndex[i]])
         return testLabels
 
     def forward(self):
@@ -164,7 +164,7 @@ class dnn:
         self.errorNum = 0
         for i in xrange(batchNum):
             forwardOutput = forwardFunction(i)
-            self.errorNum += np.sum(T.argmax(forwardOutput, 0).eval() != labelUtil.labelsToIndices(trainLabels[i*calcErrorSize:(i+1)*calcErrorSize]))
+            self.errorNum += np.sum(T.argmax(forwardOutput, 0).eval() != wordUtil.labelsToIndices(trainLabels[i*calcErrorSize:(i+1)*calcErrorSize]))
         self.errorRate = self.errorNum / float(calcErrorSize * batchNum)
 
     def initLastHiddenOut(self):
