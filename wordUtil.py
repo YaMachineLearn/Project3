@@ -1,4 +1,6 @@
 import parse
+import numpy as np
+from theano import shared
 
 WORD_VECTORS_FILENAME = "data/vec.txt"
 
