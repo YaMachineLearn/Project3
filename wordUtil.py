@@ -1,5 +1,6 @@
 import parse
 import numpy as np
+import theano
 from theano import shared
 
 WORD_VECTORS_FILENAME = "data/vec.txt"
@@ -15,7 +16,7 @@ parsedWordVectors.append([0.] * WORD_VECTOR_SIZE)
 parsedWords.append(OTHER_TYPE_SYMBOL)
 
 # Removing </s>
-WORD_VECTORS = shared( np.asarray(parsedWordVectors[1:], dtype='int32') )
+WORD_VECTORS = shared( np.asarray(parsedWordVectors[1:], dtype=theano.config.floatX) )
 WORDS = parsedWords[1:]
 
 TOTAL_WORDS = len(WORDS)  # Number of words including the OTHER type
