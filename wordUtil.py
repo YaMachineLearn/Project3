@@ -10,13 +10,13 @@ WORD_VECTOR_SIZE = len(parsedWordVectors[0])
 
 OTHER_TYPE_SYMBOL = "@OTHER@"  # The symbol representing the OTHER type of word
 
+# Adding the OTHER type of word to words and word vectors (OTHER -> [0.0] * WORD_VECTOR_SIZE)
+parsedWordVectors.append([0.] * WORD_VECTOR_SIZE)
+parsedWords.append(OTHER_TYPE_SYMBOL)
+
 # Removing </s>
 WORD_VECTORS = shared( np.asarray(parsedWordVectors[1:], dtype='int32') )
 WORDS = parsedWords[1:]
-
-# Adding the OTHER type of word to words and word vectors (OTHER -> [0.0] * WORD_VECTOR_SIZE)
-WORD_VECTORS.append([0.] * WORD_VECTOR_SIZE)
-WORDS.append(OTHER_TYPE_SYMBOL)
 
 TOTAL_WORDS = len(WORDS)  # Number of words including the OTHER type
 
