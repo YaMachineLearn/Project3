@@ -1,11 +1,11 @@
-import parse
+# import parse
 import dnn
 import wordUtil
 import time
 
 # Training input files
-TRAIN_FEATURE_FILENAME = "vec.txt"
-TEST_FILENAME = "test.txt"
+# TRAIN_FEATURE_FILENAME = "vec.txt"
+# TEST_FILENAME = "test.txt"
 
 LOAD_MODEL_FILENAME = None
 
@@ -13,7 +13,7 @@ LOAD_MODEL_FILENAME = None
 HIDDEN_LAYER = [8]  # 1 hidden layer
 BPTT_ORDER = 3
 LEARNING_RATE = 1.0
-EPOCH_NUM = 20  # number of epochs to run before saving the model
+EPOCH_NUM = 100  # number of epochs to run before saving the model
 BATCH_SIZE = 2
 
 print 'Training...'
@@ -22,27 +22,33 @@ print 'Training...'
 #     [ he is not a student however ]
 # ]
 trainFeats = [
-    [ [1,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0], [0,0,1,0,0,0,0,0], [0,0,0,1,0,0,0,0] ],
-    [ [0,0,0,0,1,0,0,0], [0,0,0,0,0,1,0,0], [0,0,0,0,0,0,1,0], [0,0,1,0,0,0,0,0], [0,0,0,1,0,0,0,0], [0,0,0,0,0,0,0,1] ]
+    [ [0,0,0,0,0,0,0,1], [1,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0], [0,0,1,0,0,0,0,0] ],
+    [ [0,0,0,0,0,0,0,1], [0,0,0,0,1,0,0,0], [0,0,0,0,0,1,0,0], [0,0,0,0,0,0,1,0], [0,0,1,0,0,0,0,0] ]
 ]
 trainLabels = [
     [0,1,2,3],
-    [4,5,6,2,3,7]
+    [4,5,6,2,3]
 ]
 LABEL_NUM = 8
-# trainFeats = [
-#     [ [1,0,0,0,0,0], [0,1,0,0,0,0], [0,0,1,0,0,0], [0,0,0,1,0,0] ],
-#     [ [0,0,0,0,1,0], [0,0,0,0,0,1], [0,0,1,0,0,0], [0,0,0,1,0,0] ]
-# ]
-# trainLabels = [
-#     [0,1,2,3],
-#     [4,5,2,3]
-# ]
-# LABEL_NUM = 6
+
 NEURON_NUM_LIST = [ HIDDEN_LAYER + [ len(trainFeats[0][0]) ] ] + HIDDEN_LAYER + [ LABEL_NUM ]
 
 aDNN = dnn.dnn( NEURON_NUM_LIST, BPTT_ORDER, LEARNING_RATE, EPOCH_NUM, BATCH_SIZE, LOAD_MODEL_FILENAME )
 aDNN.train(trainFeats, trainLabels)
+
+testFeats = [
+    [ [0,0,0,0,0,0,0,1], [1,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0], [0,0,1,0,0,0,0,0] ],
+    [ [0,0,0,0,0,0,0,1], [1,0,0,0,0,0,0,0], [1,0,0,0,0,0,0,0], [0,0,1,0,0,0,0,0] ],
+    [ [0,0,0,0,0,0,0,1], [0,0,0,0,1,0,0,0], [0,0,0,0,0,1,0,0], [0,0,0,0,0,0,1,0], [0,0,1,0,0,0,0,0] ],
+    [ [0,0,0,0,0,0,0,1], [0,0,0,0,1,0,0,0], [0,0,0,0,0,1,0,0], [0,0,0,0,0,0,1,0], [0,0,1,0,0,0,0,0] ]
+]
+testLabels = [
+    [0,1,2,3],
+    [0,0,2,3],
+    [4,5,6,2,5],
+    [4,5,6,2,3]
+]
+aDNN.test(testFeats, testLabels)
 
 """
 currentEpoch = 1

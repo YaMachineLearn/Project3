@@ -73,7 +73,7 @@ class dnn:
                 lastHiddenOutUpdate = lineIn_h
 
             # train_model = function(inputs=[sntncIndex, wordIndex], outputs=[outputVector, cost], updates=self.update(cost, i, lastHiddenOutUpdate))
-            train_model = function(inputs=[sntncIndices, wordIndex], outputs=[outputVector, cost], updates=self.update(cost, i, lastHiddenOutUpdate))
+            train_model = function(inputs=[sntncIndices, wordIndex], outputs=[outputVector, cost], updates=self.update(cost, i, lastHiddenOutUpdate, T.eq(wordIndex, maxLength - 1)))
             train_models.append(train_model)
 
         # Start training...
@@ -111,35 +111,59 @@ class dnn:
 
         # self.calculateError(trainFeats, trainLabels)
 
-    def test(self, testFeats):
-        test_model = self.getForwardFunction(testFeats, len(testFeats), self.weightMatrices)
-        testLabels = []
-        outputArray = test_model(0)
-        outputMaxIndex = T.argmax(outputArray, 0).eval()
-        for i in xrange(len(outputMaxIndex)):
-            testLabels.append(wordUtil.LABEL_LIST[outputMaxIndex[i]])
-        return testLabels
+    def test(self, testFeats, testLabels):
+        numOfChoices = 2
+        self.lastHiddenOut = self.initLastHiddenOut(len(testFeats))
+        test_model, maxLength, testSntncLengths = self.getForwardFunction(testFeats, testLabels, len(testFeats), self.weightMatrices)
+        sntncProbs = np.ones(len(testFeats), dtype=theano.config.floatX)
+        for i in xrange(maxLength):
+            outputArray = test_model(0, i)
+            for j in xrange(len(testFeats)):
+                if ( i < testSntncLengths[j] ):
+                    sntncProbs[j] *= outputArray[testLabels[j][i], j]
+            # print 'sntncProbs: ', sntncProbs
+        predictLabels = [ np.argmax(sntncProbs[i * numOfChoices : (i+1) * numOfChoices]) for i in xrange(len(testFeats) / numOfChoices) ]
+        return predictLabels
 
     def forward(self):
         pass
 
-    def getForwardFunction(self, testFeats, batchSize, weightMatrices):
-        index = T.iscalar()
-        testFeatsArray = shared(np.transpose(np.asarray(testFeats, dtype=theano.config.floatX)))
-        inputVectorArray = testFeatsArray[:, index * batchSize:(index + 1) * batchSize]
-        lineIn = inputVectorArray
-        for i in range( len(weightMatrices) ):
-            weightMatrix = weightMatrices[i]
-            lineOutput = T.dot(weightMatrix, lineIn)
-            lineIn = 1. / (1. + T.exp(-lineOutput)) # the output of the current layer is the input of the next layer
-        outputVectorArray = lineIn
-        test_model = function(inputs=[index], outputs=outputVectorArray)
-        return test_model
+    def getForwardFunction(self, testFeats, testLabels, batchSize, weightMatrices):
+        testSntncLengths = []
+        maxLength = 1
+        for sentence in testFeats:
+            testSntncLengths.append( len(sentence) )
+            if ( len(sentence) > maxLength ):
+                maxLength = len(sentence)
+        for i in xrange(len(testFeats)):
+            testFeats[i].extend( [ [0] * self.neuronNumList[0][1] for j in xrange(maxLength - testSntncLengths[i]) ] )
+            testLabels[i].extend( [0] * (maxLength - testSntncLengths[i]) )
+
+        testFeatsArray = shared( np.asarray(testFeats, dtype=theano.config.floatX) )
+
+        sntncIndex = T.iscalar()
+        wordIndex = T.iscalar()
+        testLabelsArray = shared(np.asarray(testLabels, dtype='int32'))
+        outputRef = testLabelsArray[sntncIndex * batchSize : (sntncIndex+1) * batchSize, wordIndex]
+        lineIn_h = self.lastHiddenOut
+        
+        lineIn_i = (testFeatsArray[sntncIndex * batchSize : (sntncIndex+1) * batchSize, wordIndex]).T # .T means transpose
+        weightMatrix_h = self.weightMatrices[0]
+        weightMatrix_i = self.weightMatrices[1]
+        lineOutput_h = T.dot(weightMatrix_h, lineIn_h) + T.dot(weightMatrix_i, lineIn_i)
+        lineIn_h = 1. / (1. + T.exp(-lineOutput_h)) # the output of the current layer is the input of the next layer
+
+        weightMatrix_o = self.weightMatrices[2 * self.bpttOrder]
+        lineOutput_o = T.dot(weightMatrix_o, lineIn_h)
+        outputVector = ( T.nnet.softmax(lineOutput_o.T) ).T # .T means transpose
+
+        test_model = function(inputs=[sntncIndex, wordIndex], outputs=outputVector, updates=self.updateTest(lineIn_h, T.eq(wordIndex, maxLength - 1), batchSize))
+        return [test_model, maxLength, testSntncLengths]
 
     def backProp(self):
         pass
 
-    def update(self, cost, index, lastHiddenOutUpdate):
+    def update(self, cost, index, lastHiddenOutUpdate, sntncEnd):
         totalGradW_h = T.grad(cost=cost, wrt=self.weightMatrices[0])
         totalGradW_i = T.grad(cost=cost, wrt=self.weightMatrices[1])
         for i in range( 1, self.bpttOrder ):
@@ -153,8 +177,16 @@ class dnn:
 
         if (index == self.bpttOrder - 1):
             updates.append( (self.lastHiddenOut, lastHiddenOutUpdate) )
-        elif (index == 0):
+        elif (sntncEnd):
             updates.append( (self.lastHiddenOut, self.initLastHiddenOut()) )
+        return updates
+
+    def updateTest(self, lastHiddenOutUpdate, sntncEnd, batchSize):
+        updates = []
+        if (sntncEnd):
+            updates.append( (self.lastHiddenOut, self.initLastHiddenOut(batchSize)) )
+        else:
+            updates.append( (self.lastHiddenOut, lastHiddenOutUpdate) )
         return updates
 
     def calculateError(self, trainFeats, trainLabels):
@@ -167,9 +199,11 @@ class dnn:
             self.errorNum += np.sum(T.argmax(forwardOutput, 0).eval() != wordUtil.labelsToIndices(trainLabels[i*calcErrorSize:(i+1)*calcErrorSize]))
         self.errorRate = self.errorNum / float(calcErrorSize * batchNum)
 
-    def initLastHiddenOut(self):
+    def initLastHiddenOut(self, batchSize=None):
         # return shared( np.zeros( (self.neuronNumList[0][0], 1), dtype=theano.config.floatX ) )
-        return shared( np.zeros( (self.neuronNumList[0][0], self.batchSize), dtype=theano.config.floatX ) )
+        if (batchSize is None):
+            batchSize = self.batchSize
+        return shared( np.zeros( (self.neuronNumList[0][0], batchSize), dtype=theano.config.floatX ) )
 
     ### Model generate, save and load ###
     def setRandomModel(self):
