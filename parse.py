@@ -27,7 +27,6 @@ import wordUtil  # Must be imported after parseWordVectors has been defined for 
 
 # DATA_FILENAME includes TRAIN_FILE_NAME or PROBLEM_FILE_NAME
 def parseData(DATA_FILENAME):
-    dataWordVectors = []
     dataWordIndices = []
 
     with open(DATA_FILENAME) as trainFeatFile:
@@ -35,18 +34,10 @@ def parseData(DATA_FILENAME):
             strippedLine = line.rstrip()
             if strippedLine:   #not empty after strip
                 lineList = strippedLine.split(' ')
-                oneLineWordVector = [wordUtil.wordToVector(word) for word in lineList]
                 oneLineWordIndices = [wordUtil.wordToindex(word) for word in lineList]
-                # if everything goes well, the followings can be removed. --Roger
-                #oneLineWordVector = []
-                #oneLineWordIndices = []
-                #for i in range(len(lineList)):
-                #    oneLineWordVector.append(labelUtil.wordToVector(lineList[i]))
-                #    oneLineWordIndices.append(labelUtil.wordToindex(lineList[i]))
-                dataWordVectors.append(oneLineWordVector)
                 dataWordIndices.append(oneLineWordIndices)
                 
-    return (dataWordVectors, dataWordIndices)
+    return dataWordIndices
 """
 def getProblemAndAnswer(testStr):
     pattern = '(^\d+\w\s)([\w|\s]+)( \[\w+)([\w|\s]*[^\n])(\n?)$'

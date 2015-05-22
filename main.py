@@ -28,7 +28,7 @@ currentEpoch = 1
 print 'Parsing training data...'
 t0 = time.time()
 
-trainWordVectors, trainWordIndices = parse.parseData(TRAIN_FILENAME)
+trainWordIndices = parse.parseData(TRAIN_FILENAME)
 
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
@@ -40,14 +40,14 @@ aDNN = dnn.dnn( NEURON_NUM_LIST, BPTT_ORDER, LEARNING_RATE, EPOCH_NUM, BATCH_SIZ
 
 while True:
     t2 = time.time()
-    aDNN.train(trainWordVectors, trainWordIndices)
+    aDNN.train(trainWordIndices)
     t3 = time.time()
     print '...costs ', t3 - t2, ' seconds'
 
     # print 'Error rate: ', aDNN.errorRate
 
     currentEpoch += EPOCH_NUM
-    
+
     # Saving the Neural Network Model
     modelInfo = "_ER" + str(aDNN.errorRate)[2:5] \
         + "_CO" + str(aDNN.cost)[0:7] \
