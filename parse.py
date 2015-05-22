@@ -2,6 +2,8 @@ import re
 import math
 import time
 
+SENTENCE_LENGTH_THRES = 64
+
 def parseWordVectors(VEC_FILENAME):
     print 'Parsing word vectors...'
     t0 = time.time()
@@ -34,8 +36,9 @@ def parseData(DATA_FILENAME):
             strippedLine = line.rstrip()
             if strippedLine:   #not empty after strip
                 lineList = strippedLine.split(' ')
-                oneLineWordIndices = [wordUtil.wordToindex(word) for word in lineList]
-                dataWordIndices.append(oneLineWordIndices)
+                if len(lineList) < SENTENCE_LENGTH_THRES:
+                    oneLineWordIndices = [wordUtil.wordToindex(word) for word in lineList]
+                    dataWordIndices.append(oneLineWordIndices)
                 
     return dataWordIndices
 """
