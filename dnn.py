@@ -49,6 +49,7 @@ class dnn:
         sntncIndices = T.ivector('sntncIndices')
         wordIndex = T.iscalar('wordIndex')
         trainLabelsArray = shared(np.asarray(trainLabels, dtype='int32'))
+
         trainFeatsArray = T.concatenate(  [ shared( np.zeros( (len(trainLabels), 1), dtype='int32' ) ), trainLabelsArray[:, 0 : maxLength -1] ], axis=1 )
         # outputRef = trainLabelsArray[sntncIndex, wordIndex]
         outputRef = trainLabelsArray[sntncIndices, wordIndex]
@@ -66,9 +67,10 @@ class dnn:
             weightMatrix_o = self.weightMatrices[2 * self.bpttOrder]
             lineOutput_o = T.dot(weightMatrix_o, lineIn_h)
             outputVector = ( T.nnet.softmax(lineOutput_o.T) ).T # .T means transpose
-            cost = shared(0.)
-            for j in xrange(self.batchSize):
-                cost -= T.switch( T.lt(wordIndex, trainSntncLengthsVec[sntncIndices[j]]), T.log(outputVector[outputRef[j], j]), 0 )
+            # cost = shared(0.)
+            # for j in xrange(self.batchSize):
+            #     cost -= T.switch( T.lt(wordIndex, trainSntncLengthsVec[sntncIndices[j]]), T.log(outputVector[outputRef[j], j]), 0 )
+            cost = - T.sum( T.switch( T.lt(wordIndex, trainSntncLengthsVec[sntncIndices]), T.log(outputVector[outputRef, range(self.batchSize)]), 0.0 ) )
             if (i == 0):
                 lastHiddenOutUpdate = lineIn_h
 
@@ -88,8 +90,8 @@ class dnn:
             sumCost = 0.
             for i in xrange(numOfBatches): #feats and labels are shuffled, so don't need random index here
                 progress = float(count + (numOfBatches * epoch)) / float(numOfBatches * self.epochNum) * 100.
-                sys.stdout.write('Epoch %d, Progress: %f%%    \r' % (epoch, progress))
-                sys.stdout.flush()
+                # sys.stdout.write('Epoch %d, Progress: %f%%    \r' % (epoch, progress))
+                # sys.stdout.flush()
                 self.initLastHiddenOut()
                 for j in xrange( max([ trainSntncLengths[index] for index in shuffledIndex[i*self.batchSize : (i+1)*self.batchSize] ]) ):
                     # startIndex = j + 1 - self.bpttOrder
@@ -101,28 +103,29 @@ class dnn:
                     self.wordIndex = j
                     # self.out, self.cost = ( train_models[min(j, self.bpttOrder - 1)] )(shuffledIndex[i], j)
                     self.out, self.cost = ( train_models[min(j, self.bpttOrder - 1)] )(shuffledIndex[i*self.batchSize : (i+1)*self.batchSize], j)
-                    # print 'Cost: ', self.cost
+                    print 'Cost: ', self.cost
                     # print 'Out: ', self.out
                     sumCost = sumCost + self.cost
                 count = count + 1
             # self.cost = sumCost / float(numOfBatches)
-            print 'Cost: ', sumCost / float(numOfBatches)
-            print shuffledIndex
+            # print 'Cost: ', sumCost / float(numOfBatches)
+            # print shuffledIndex
 
         # self.calculateError(trainFeats, trainLabels)
 
     def test(self, testLabels):
         numOfChoices = 2
         self.lastHiddenOut = self.initLastHiddenOut(len(testLabels))
-        test_model, maxLength, testSntncLengths = self.getForwardFunction(testLabels, len(testFeats), self.weightMatrices)
+        test_model, maxLength, testSntncLengths = self.getForwardFunction(testLabels, len(testLabels), self.weightMatrices)
         sntncProbs = np.ones(len(testLabels), dtype=theano.config.floatX)
         for i in xrange(maxLength):
             outputArray = test_model(0, i)
             for j in xrange(len(testLabels)):
                 if ( i < testSntncLengths[j] ):
                     sntncProbs[j] *= outputArray[testLabels[j][i], j]
-            # print 'sntncProbs: ', sntncProbs
-        predictLabels = [ np.argmax(sntncProbs[i * numOfChoices : (i+1) * numOfChoices]) for i in xrange(len(testFeats) / numOfChoices) ]
+            print 'sntncProbs: ', sntncProbs
+        predictLabels = [ np.argmax(sntncProbs[i * numOfChoices : (i+1) * numOfChoices]) for i in xrange(len(testLabels) / numOfChoices) ]
+        print predictLabels
         return predictLabels
 
     def forward(self):

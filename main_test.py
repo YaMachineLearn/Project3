@@ -1,6 +1,6 @@
 # import parse
 import dnn
-import wordUtil
+# import wordUtil
 import time
 
 # Training input files
@@ -43,12 +43,12 @@ testFeats = [
     [ [0,0,0,0,0,0,0,1], [0,0,0,0,1,0,0,0], [0,0,0,0,0,1,0,0], [0,0,0,0,0,0,1,0], [0,0,1,0,0,0,0,0] ]
 ]
 testLabels = [
-    [0,1,2,3],
-    [0,0,2,3],
-    [4,5,6,2,5],
-    [4,5,6,2,3]
+    [1,2,3,4],
+    [1,1,3,4],
+    [5,6,7,3,6],
+    [5,6,7,3,4]
 ]
-aDNN.test(testFeats, testLabels)
+aDNN.test(testLabels)
 
 """
 currentEpoch = 1
