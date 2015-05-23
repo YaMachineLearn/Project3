@@ -90,8 +90,8 @@ class dnn:
             sumCost = 0.
             for i in xrange(numOfBatches): #feats and labels are shuffled, so don't need random index here
                 progress = float(count + (numOfBatches * epoch)) / float(numOfBatches * self.epochNum) * 100.
-                # sys.stdout.write('Epoch %d, Progress: %f%%    \r' % (epoch, progress))
-                # sys.stdout.flush()
+                sys.stdout.write('Epoch %d, Progress: %f%%    \r' % (epoch, progress))
+                sys.stdout.flush()
                 self.initLastHiddenOut()
                 for j in xrange( max([ trainSntncLengths[index] for index in shuffledIndex[i*self.batchSize : (i+1)*self.batchSize] ]) ):
                     # startIndex = j + 1 - self.bpttOrder
@@ -103,12 +103,12 @@ class dnn:
                     self.wordIndex = j
                     # self.out, self.cost = ( train_models[min(j, self.bpttOrder - 1)] )(shuffledIndex[i], j)
                     self.out, self.cost = ( train_models[min(j, self.bpttOrder - 1)] )(shuffledIndex[i*self.batchSize : (i+1)*self.batchSize], j)
-                    print 'Cost: ', self.cost
+                    # print 'Cost: ', self.cost
                     # print 'Out: ', self.out
                     sumCost = sumCost + self.cost
                 count = count + 1
             # self.cost = sumCost / float(numOfBatches)
-            # print 'Cost: ', sumCost / float(numOfBatches)
+            print 'Cost: ', sumCost / float(numOfBatches)
             # print shuffledIndex
 
         # self.calculateError(trainFeats, trainLabels)
