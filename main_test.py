@@ -1,7 +1,8 @@
 # import parse
 import dnn
-# import wordUtil
+import wordUtil
 import time
+import numpy as np
 
 # Training input files
 # TRAIN_FEATURE_FILENAME = "vec.txt"
@@ -14,7 +15,7 @@ HIDDEN_LAYER = [8]  # 1 hidden layer
 BPTT_ORDER = 3
 LEARNING_RATE = 1.0
 EPOCH_NUM = 100  # number of epochs to run before saving the model
-BATCH_SIZE = 2
+BATCH_SIZE = 1
 
 print 'Training...'
 # trainFeats = [
@@ -29,10 +30,11 @@ trainLabels = [
     [1,2,3,4],
     [5,6,7,3,4]
 ]
-LABEL_NUM = 8
 
-NEURON_NUM_LIST = [ HIDDEN_LAYER + [ len(trainFeats[0][0]) ] ] + HIDDEN_LAYER + [ LABEL_NUM ]
+TOTAL_WORDS = 8
+NEURON_NUM_LIST = [ HIDDEN_LAYER + [ len(trainFeats[0][0]) ] ] + HIDDEN_LAYER + [ [ TOTAL_WORDS, wordUtil.WORD_CLASS_NUM ] ]
 
+wordUtil.genWordClassUtils(trainLabels)
 aDNN = dnn.dnn( NEURON_NUM_LIST, BPTT_ORDER, LEARNING_RATE, EPOCH_NUM, BATCH_SIZE, LOAD_MODEL_FILENAME )
 aDNN.train(trainLabels)
 
@@ -48,6 +50,7 @@ testLabels = [
     [5,6,7,3,6],
     [5,6,7,3,4]
 ]
+print 'Testing...'
 aDNN.test(testLabels)
 
 """

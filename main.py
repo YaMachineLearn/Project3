@@ -27,13 +27,16 @@ currentEpoch = 1
 
 print 'Parsing training data...'
 t0 = time.time()
-
 trainWordIndices = parse.parseData(TRAIN_FILENAME)
-
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
 
 NEURON_NUM_LIST = [ HIDDEN_LAYER + [ wordUtil.WORD_VECTOR_SIZE ] ] + HIDDEN_LAYER + [ wordUtil.TOTAL_WORDS ]
+print 'Generating utils for class-based output layer...'
+t0 = time.time()
+wordUtil.genWordClassUtils(trainWordIndices)
+t1 = time.time()
+print '...costs ', t1 - t0, ' seconds'
 
 print 'Training...'
 aDNN = dnn.dnn( NEURON_NUM_LIST, BPTT_ORDER, LEARNING_RATE, EPOCH_NUM, BATCH_SIZE, LOAD_MODEL_FILENAME )

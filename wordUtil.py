@@ -2,6 +2,7 @@ import parse
 import numpy as np
 import theano
 from theano import shared
+WORD_CLASS_NUM = 2
 
 WORD_VECTORS_FILENAME = "data/vec.txt"
 
@@ -38,3 +39,28 @@ def wordToindex(word):
 #     vec1ofN = [0.] * TOTAL_WORDS
 #     vec1ofN[wordToindex(word)] = 1.
 #     return vec1ofN
+
+def genWordClassUtils(trainLabels):
+    hist = np.bincount(np.asarray([item for sublist in trainLabels for item in sublist], dtype='int32'))
+    totalWords = np.sum(hist)
+    orderedIndices = np.argsort(hist)
+    index = TOTAL_WORDS - 1
+    freqSum = 0
+    WORD_CLASS_CUM_SIZES_list = [0]
+    WORD_CLASSES_list = [-1] * TOTAL_WORDS
+    WORD_CLASS_LABELS_list = [-1] * TOTAL_WORDS
+    for i in xrange(WORD_CLASS_NUM):
+        lab = 0
+        while (freqSum < totalWords * (i + 1) / WORD_CLASS_NUM):
+            freqSum += hist[orderedIndices[index]]
+            WORD_CLASSES_list[orderedIndices[index]] = i
+            WORD_CLASS_LABELS_list[orderedIndices[index]] = lab
+            index -= 1
+            lab += 1
+        WORD_CLASS_CUM_SIZES_list.append( TOTAL_WORDS - 1 - index )
+    global WORD_CLASS_CUM_SIZES
+    global WORD_CLASSES
+    global WORD_CLASS_LABELS
+    WORD_CLASS_CUM_SIZES = shared( np.asarray(WORD_CLASS_CUM_SIZES_list, dtype='int32') )
+    WORD_CLASSES = shared( np.asarray(WORD_CLASSES_list, dtype='int32') )
+    WORD_CLASS_LABELS = shared( np.asarray(WORD_CLASS_LABELS_list, dtype='int32') )
