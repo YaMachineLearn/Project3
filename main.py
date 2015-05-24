@@ -20,7 +20,7 @@ HIDDEN_LAYER = [128]  # 1 hidden layer
 BPTT_ORDER = 4
 LEARNING_RATE = 0.05
 EPOCH_NUM = 10  # number of epochs to run before saving the model
-BATCH_SIZE = 256
+BATCH_SIZE = 1
 
 
 currentEpoch = 1
