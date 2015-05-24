@@ -23,7 +23,7 @@ EPOCH_NUM = 10  # number of epochs to run before saving the model
 BATCH_SIZE = 1
 
 
-currentEpoch = 1
+currentEpoch = 0
 
 print 'Parsing training data...'
 t0 = time.time()
@@ -52,8 +52,7 @@ while True:
     currentEpoch += EPOCH_NUM
 
     # Saving the Neural Network Model
-    modelInfo = "_ER" + str(aDNN.errorRate)[2:5] \
-        + "_CO" + str(aDNN.cost)[0:7] \
+    modelInfo = "_CO" + str(aDNN.cost)[0:7] \
         + "_HL" + str(HIDDEN_LAYER[0]) + "-" + str(len(HIDDEN_LAYER)) \
         + "_EP" + str(currentEpoch) \
         + "_LR" + str(LEARNING_RATE) \
