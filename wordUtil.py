@@ -2,7 +2,7 @@ import parse
 import numpy as np
 import theano
 from theano import shared
-WORD_CLASS_NUM = 2
+WORD_CLASS_NUM = 100
 
 WORD_VECTORS_FILENAME = "data/vec.txt"
 
