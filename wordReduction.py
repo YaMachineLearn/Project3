@@ -25,13 +25,13 @@ print '...costs ', t1 - t0, ' seconds'
 print 'Total', wordUtil.TOTAL_WORDS - 2, 'words (without OTHER and <s>)'
 
 # A check list for words existing in TEST_FILE
-testWordsMap = dict(zip(wordUtil.WORDS[1:-1], [False] * (wordUtil.TOTAL_WORDS - 2)))  # Excluding the <s> and the OTHER type
+testWordsChecklist = [False] * wordUtil.TOTAL_WORDS
 
 print 'Checking words in testing data...'
 t0 = time.time()
 for sentence in testWordIndices:
     for wordIndex in sentence:
-        testWordsMap[wordUtil.WORDS[wordIndex]] = True
+        testWordsChecklist[wordIndex] = True
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
 
@@ -43,17 +43,17 @@ print '...costs ', t1 - t0, ' seconds'
 
 print 'Extracting useful words...'
 t0 = time.time()
-newWords = [key for key in testWordsMap if testWordsMap[key] or trainWordsHist[wordUtil.wordToindex(key)] >= WORD_FREQUENCY_THRES]
+newWordsIndices = [index for index in range(len(testWordsChecklist)) if wordUtil.WORDS[index] != wordUtil.OTHER_TYPE_SYMBOL and (testWordsChecklist[index] or trainWordsHist[index] >= WORD_FREQUENCY_THRES)]
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
 
-print 'Extracted', len(newWords), 'words (without OTHER and <s>)'
+print 'Extracted', len(newWordsIndices), 'words (without OTHER and <s>)'
 
 print 'Outputing new word vectors to', OUTPUT_VEC_FILENAME
 t0 = time.time()
 with open(OUTPUT_VEC_FILENAME, 'w') as outputVecFile:
     # Writing header
-    outputVecFile.write(str(len(newWords)) + ' ' + str(wordUtil.WORD_VECTOR_SIZE) + '\n')
+    outputVecFile.write(str(len(newWordsIndices) + 2) + ' ' + str(wordUtil.WORD_VECTOR_SIZE) + '\n')
     # Writing </s> and <s>
     for i in range(2):
         outputVecFile.write(wordUtil.parsedWords[i] + ' ')
@@ -63,10 +63,9 @@ with open(OUTPUT_VEC_FILENAME, 'w') as outputVecFile:
 
     # Writing new vectors
     wordVectors = wordUtil.WORD_VECTORS.get_value()
-    for i in range(len(newWords)):
-        outputVecFile.write(newWords[i] + ' ')
-        wordIndex = wordUtil.wordToindex(newWords[i])
-        for val in wordVectors[wordIndex]:
+    for i in range(len(newWordsIndices)):
+        outputVecFile.write(wordUtil.WORDS[newWordsIndices[i]] + ' ')
+        for val in wordVectors[newWordsIndices[i]]:
             outputVecFile.write(str(val) + ' ')
         outputVecFile.write('\n')
 t1 = time.time()
