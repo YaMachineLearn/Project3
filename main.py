@@ -4,9 +4,9 @@ import wordUtil
 import time
 
 # Training input files
-TRAIN_FILENAME = "data/training.txt"
+TRAIN_FILENAME = "data/training_v4_noTag.txt"
 TEST_FILENAME = None #"test.txt"
-PROBLEM_FILENAME = "data/test.txt"
+PROBLEM_FILENAME = "data/test_v4.txt"
 
 # Neural Network Model saving and loading file name
 SAVE_MODEL_FILENAME = "models/rnn.model"
@@ -19,7 +19,7 @@ OUTPUT_CSV_FILENAME = "output/result.csv"
 HIDDEN_LAYER = [128]  # 1 hidden layer
 BPTT_ORDER = 4
 LEARNING_RATE = 0.05
-EPOCH_NUM = 10  # number of epochs to run before saving the model
+EPOCH_NUM = 1  # number of epochs to run before saving the model
 BATCH_SIZE = 1
 
 
