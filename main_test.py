@@ -1,5 +1,5 @@
 # import parse
-import dnn
+import rnn
 # import wordUtil
 import time
 
@@ -33,7 +33,7 @@ LABEL_NUM = 8
 
 NEURON_NUM_LIST = [ HIDDEN_LAYER + [ len(trainFeats[0][0]) ] ] + HIDDEN_LAYER + [ LABEL_NUM ]
 
-aDNN = dnn.dnn( NEURON_NUM_LIST, BPTT_ORDER, LEARNING_RATE, EPOCH_NUM, BATCH_SIZE, LOAD_MODEL_FILENAME )
+aDNN = rnn.rnn( NEURON_NUM_LIST, BPTT_ORDER, LEARNING_RATE, EPOCH_NUM, BATCH_SIZE, LOAD_MODEL_FILENAME )
 aDNN.train(trainLabels)
 
 testFeats = [

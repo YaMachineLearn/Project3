@@ -8,7 +8,7 @@ import theano.tensor as T
 from theano import shared
 from theano import function
 
-class dnn:
+class rnn:
     def __init__(self, neuronNumList, bpttOrder, learningRate, epochNum, batchSize, LOAD_MODEL_FILENAME=None):
         self.neuronNumList = neuronNumList    #ex: [69, 128, 128, 128, 48]
         self.bpttOrder = bpttOrder

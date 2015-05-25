@@ -1,12 +1,12 @@
 import parse
-import dnn
+import rnn
 import wordUtil
 import time
 
 # Training input files
-TRAIN_FILENAME = "data/training.txt"
+TRAIN_FILENAME = "data/training_v4_noTag.txt"
 TEST_FILENAME = None #"test.txt"
-PROBLEM_FILENAME = "data/test.txt"
+PROBLEM_FILENAME = "data/test_v4.txt"
 
 # Neural Network Model saving and loading file name
 SAVE_MODEL_FILENAME = "models/rnn.model"
@@ -19,7 +19,7 @@ OUTPUT_CSV_FILENAME = "output/result.csv"
 HIDDEN_LAYER = [128]  # 1 hidden layer
 BPTT_ORDER = 4
 LEARNING_RATE = 0.05
-EPOCH_NUM = 10  # number of epochs to run before saving the model
+EPOCH_NUM = 1  # number of epochs to run before saving the model
 BATCH_SIZE = 256
 
 
@@ -36,11 +36,11 @@ print '...costs ', t1 - t0, ' seconds'
 NEURON_NUM_LIST = [ HIDDEN_LAYER + [ wordUtil.WORD_VECTOR_SIZE ] ] + HIDDEN_LAYER + [ wordUtil.TOTAL_WORDS ]
 
 print 'Training...'
-aDNN = dnn.dnn( NEURON_NUM_LIST, BPTT_ORDER, LEARNING_RATE, EPOCH_NUM, BATCH_SIZE, LOAD_MODEL_FILENAME )
+aRNN = rnn.rnn( NEURON_NUM_LIST, BPTT_ORDER, LEARNING_RATE, EPOCH_NUM, BATCH_SIZE, LOAD_MODEL_FILENAME )
 
 while True:
     t2 = time.time()
-    aDNN.train(trainWordIndices)
+    aRNN.train(trainWordIndices)
     t3 = time.time()
     print '...costs ', t3 - t2, ' seconds'
 
@@ -49,14 +49,14 @@ while True:
     currentEpoch += EPOCH_NUM
 
     # Saving the Neural Network Model
-    modelInfo = "_ER" + str(aDNN.errorRate)[2:5] \
-        + "_CO" + str(aDNN.cost)[0:7] \
+    modelInfo = "_ER" + str(aRNN.errorRate)[2:5] \
+        + "_CO" + str(aRNN.cost)[0:7] \
         + "_HL" + str(HIDDEN_LAYER[0]) + "-" + str(len(HIDDEN_LAYER)) \
         + "_EP" + str(currentEpoch) \
         + "_LR" + str(LEARNING_RATE) \
         + "_BS" + str(BATCH_SIZE)
     SAVE_MODEL_FILENAME = "models/DNN" + modelInfo + ".model"
-    aDNN.saveModel(SAVE_MODEL_FILENAME)
+    aRNN.saveModel(SAVE_MODEL_FILENAME)
 
     # print 'Testing...'
     # t4 = time.time()
