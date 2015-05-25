@@ -53,30 +53,17 @@ class rnn:
         trainFeatsArray = T.concatenate(  [ shared( np.zeros( (len(trainLabels), 1), dtype='int32' ) ), trainLabelsArray[:, 0 : maxLength -1] ], axis=1 )
         # outputRef = trainLabelsArray[sntncIndex, wordIndex]
         outputRef = trainLabelsArray[sntncIndices, wordIndex]
-        lineIn_h = self.lastHiddenOut
-        train_models = []
-        for i in xrange( self.bpttOrder ):
-            startIndex = T.maximum( 0, wordIndex - self.bpttOrder + 1 )
-            # lineIn_i = (trainFeatsArray[sntncIndex, startIndex + i : startIndex + i + 1]).T # .T means transpose
-            lineIn_i = (wordUtil.WORD_VECTORS[trainFeatsArray[sntncIndices, startIndex + i]]).T # .T means transpose
-            weightMatrix_h = self.weightMatrices[2 * i]
-            weightMatrix_i = self.weightMatrices[2 * i + 1]
-            lineOutput_h = T.dot(weightMatrix_h, lineIn_h) + T.dot(weightMatrix_i, lineIn_i)
-            lineIn_h = 1. / (1. + T.exp(-lineOutput_h)) # the output of the current layer is the input of the next layer
 
-            weightMatrix_o = self.weightMatrices[2 * self.bpttOrder]
-            lineOutput_o = T.dot(weightMatrix_o, lineIn_h)
-            outputVector = ( T.nnet.softmax(lineOutput_o.T) ).T # .T means transpose
-            # cost = shared(0.)
-            # for j in xrange(self.batchSize):
-            #     cost -= T.switch( T.lt(wordIndex, trainSntncLengthsVec[sntncIndices[j]]), T.log(outputVector[outputRef[j], j]), 0 )
-            cost = - T.sum( T.switch( T.lt(wordIndex, trainSntncLengthsVec[sntncIndices]), T.log(outputVector[outputRef, range(self.batchSize)]), 0.0 ) )
-            if (i == 0):
-                lastHiddenOutUpdate = lineIn_h
+        def recurrence(x_t, h_tm1): 
+            h_t = T.nnet.sigmoid( T.dot(self.weightMatrices[0], h_tm1) + T.dot(self.weightMatrices[1], x_t) )
+            y_t = ( T.nnet.softmax( ( T.dot(self.weightMatrices[2], h_t) ).T ) ).T
+            return [h_t, y_t]
 
-            # train_model = function(inputs=[sntncIndex, wordIndex], outputs=[outputVector, cost], updates=self.update(cost, i, lastHiddenOutUpdate))
-            train_model = function(inputs=[sntncIndices, wordIndex], outputs=[outputVector, cost], updates=self.update(cost, i, lastHiddenOutUpdate, T.eq(wordIndex, maxLength - 1)))
-            train_models.append(train_model)
+        startIndex = T.maximum( 0, wordIndex - self.bpttOrder + 1 )
+        x = wordUtil.WORD_VECTORS[trainFeatsArray[sntncIndices, startIndex : wordIndex + 1]].dimshuffle(1, 2, 0)
+        [h, y], _ = theano.scan(fn=recurrence, sequences=x, outputs_info=[self.lastHiddenOut, None], n_steps=x.shape[0])
+        cost = - T.sum( T.switch( T.lt(wordIndex, trainSntncLengthsVec[sntncIndices]), T.log(y[-1][outputRef, range(self.batchSize)]), 0.0 ) )
+        train_model = function(inputs=[sntncIndices, wordIndex], outputs=[y[-1], cost], updates=self.updateScan(cost, h[0], T.gt(startIndex, 0), T.eq(wordIndex, maxLength - 1)))
 
         # Start training...
         numOfBatches = len(trainLabels) / self.batchSize
@@ -94,15 +81,10 @@ class rnn:
                 sys.stdout.flush()
                 self.initLastHiddenOut()
                 for j in xrange( max([ trainSntncLengths[index] for index in shuffledIndex[i*self.batchSize : (i+1)*self.batchSize] ]) ):
-                    # startIndex = j + 1 - self.bpttOrder
-                    # if ( startIndex >= 0):
-                    #     self.level = self.bpttOrder
-                    # else:
-                    #     self.level = j + 1
-                    #     startIndex = 0
                     self.wordIndex = j
                     # self.out, self.cost = ( train_models[min(j, self.bpttOrder - 1)] )(shuffledIndex[i], j)
-                    self.out, self.cost = ( train_models[min(j, self.bpttOrder - 1)] )(shuffledIndex[i*self.batchSize : (i+1)*self.batchSize], j)
+                    # self.out, self.cost = ( train_models[min(j, self.bpttOrder - 1)] )(shuffledIndex[i*self.batchSize : (i+1)*self.batchSize], j)
+                    self.out, self.cost = train_model(shuffledIndex[i*self.batchSize : (i+1)*self.batchSize], j)
                     # print 'Cost: ', self.cost
                     # print 'Out: ', self.out
                     sumCost = sumCost + self.cost
@@ -157,7 +139,8 @@ class rnn:
         lineOutput_h = T.dot(weightMatrix_h, lineIn_h) + T.dot(weightMatrix_i, lineIn_i)
         lineIn_h = 1. / (1. + T.exp(-lineOutput_h)) # the output of the current layer is the input of the next layer
 
-        weightMatrix_o = self.weightMatrices[2 * self.bpttOrder]
+        # weightMatrix_o = self.weightMatrices[2 * self.bpttOrder]
+        weightMatrix_o = self.weightMatrices[2]
         lineOutput_o = T.dot(weightMatrix_o, lineIn_h)
         outputVector = ( T.nnet.softmax(lineOutput_o.T) ).T # .T means transpose
 
@@ -183,6 +166,16 @@ class rnn:
             updates.append( (self.lastHiddenOut, lastHiddenOutUpdate) )
         elif (sntncEnd):
             updates.append( (self.lastHiddenOut, self.initLastHiddenOut()) )
+        return updates
+
+    def updateScan(self, cost, lastHiddenOutUpdate, sntncMiddle, sntncEnd):
+        params = [ self.weightMatrices[0], self.weightMatrices[1], self.weightMatrices[2] ]
+        gparams = [T.grad(cost, param) for param in params]
+        updates = [(param, param - self.learningRate * gparam) for param, gparam in zip(params, gparams)]
+        if (sntncEnd):
+            updates.append( (self.lastHiddenOut, self.initLastHiddenOut()) )
+        elif (sntncMiddle):
+            updates.append( (self.lastHiddenOut, lastHiddenOutUpdate) )
         return updates
 
     def updateTest(self, lastHiddenOutUpdate, sntncEnd, batchSize):
@@ -220,9 +213,9 @@ class rnn:
         w_o = np.asarray( np.random.normal(
             loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[2]),
             size=(self.neuronNumList[2], self.neuronNumList[1])), dtype=theano.config.floatX)
-        for i in range( self.bpttOrder ):    #ex: range(5-1) => 0, 1, 2, 3
-            self.weightMatrices.append( shared(w_h) )
-            self.weightMatrices.append( shared(w_i) )
+        # for i in range( self.bpttOrder ):    #ex: range(5-1) => 0, 1, 2, 3
+        self.weightMatrices.append( shared(w_h) )
+        self.weightMatrices.append( shared(w_i) )
         self.weightMatrices.append( shared(w_o) )
 
     def saveModel(self, SAVE_MODEL_FILENAME):
