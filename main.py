@@ -19,7 +19,6 @@ t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
 
 
-
 print 'Computing Optimal Choice...'
 t0 = time.time()
 
@@ -32,6 +31,15 @@ for i in xrange(len(problemList)):
     answer = scoreOfChoices.index(max(scoreOfChoices))  # can be faster,  but this is easier to read
 
     answerList.append(answer)
+
+t1 = time.time()
+print '...costs ', t1 - t0, ' seconds'
+
+
+
+print 'Writing output file...'
+parse.outputCsvFileFromAnswerNumbers(answerList, OUTPUT_FILE)
+
 # guessAnswer = []
 # for i in xrange(len(answers)):
 #     degSum = []
@@ -41,15 +49,3 @@ for i in xrange(len(problemList)):
 #             oneDegSum += parse.dotproduct(answers[i][j], problems[i][k])
 #         degSum.append(oneDegSum)
 #     guessAnswer.append(degSum.index(max(degSum)))
-t1 = time.time()
-print '...costs ', t1 - t0, ' seconds'
-
-
-
-print 'Writing output file...'
-t0 = time.time()
-
-parse.outputCsvFileFromAnswerNumbers(answerList, OUTPUT_FILE)
-
-t1 = time.time()
-print '...costs ', t1 - t0, ' seconds'
