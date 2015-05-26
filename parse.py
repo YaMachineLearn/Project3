@@ -1,8 +1,10 @@
 import re
 import math
 import time
+import wordUtil as wu   #wordUtil must has been imported in main.py
 
-SENTENCE_LENGTH_THRES = 64
+CHOICE_NUM = 5
+ANSWERS = ['a', 'b', 'c', 'd', 'e']
 
 def parseWordVectors(VEC_FILENAME):
     print 'Parsing word vectors...'
@@ -25,9 +27,59 @@ def parseWordVectors(VEC_FILENAME):
     print '...costs ', t1 - t0, ' seconds'
     return (wordVectors, words)
 
-import wordUtil  # Must be imported after parseWordVectors has been defined for labelUtil to use
+def parseProblemChoices(TEST_FILE):
+    # TEST_FILE: preprocessed file. only english characters in it
+    #output.choicesList: [[324,8752,4657,123,9527], ...] #choices in each problem
+    #output.problemList: [[25,896,1888], ...]  #other words in each problem
 
-# DATA_FILENAME includes TRAIN_FILE_NAME or PROBLEM_FILE_NAME
+
+    problemList = list()
+    choicesList = list()
+
+    testFile = open(TEST_FILE)
+    fileLines = testFile.readlines()
+    testFile.close()
+
+    problemCount = len(fileLines) / CHOICE_NUM
+
+    for problemIndex in xrange(problemCount):
+        problemLines = fileLines[ problemIndex*CHOICE_NUM : (problemIndex+1)*CHOICE_NUM ]
+
+        problemWordIndices = [ [wu.wordToindex(word) for word in sentence.split()] for sentence in problemLines]
+        #problemWordIndices: [ [25,896,324,1888], [25,896,8752,1888], [25,896,4657,1888], [25,896,123,1888], [25,896,9527,1888]  ]
+
+        for i in xrange(len(problemWordIndices[0])):
+            if problemWordIndices[0][i] != problemWordIndices[1][i]:
+                answerIndex = i
+                break
+
+        choices = [ sentence[answerIndex] for sentence in problemWordIndices ]
+        #choices: [324,8752,4657,123,9527]
+        problemWordIndices[0].pop(answerIndex)
+        problem = problemWordIndices[0]
+        #problem: [25,896,1888]
+
+        problemList.append(problem)
+        choicesList.append(choices)
+
+    return (problemList, choicesList)
+"""
+def parseProblemAnswerFromLine(testStr):
+    #input: "1038d) I will never so much as [perceive] the same air with you again ."
+    #output: ['I', 'will', 'never',... ]
+    pattern = "(^\d+\w\)\s)([\w|\s]+)(\s\[)(\w+)(\])([\w|\s]*)(\s\.)(\n?)$"
+    #oldPattern = '(^\d+\w\s)([\w|\s]+)( \[\w+)([\w|\s]*[^\n])(\n?)$'
+    m = re.match(pattern, testStr)
+    problem = m.group(2) + m.group(4) if m.group(4) != '' else m.group(2)
+    answer = m.group(3)
+
+    problemWords = problem.split(' ')
+
+    problemWordIndices = [wordToindex(word) for word in problemWords]
+    answerWordIndex = wordToindex(answer[2:])
+    return (problemWordIndices, answerWordIndex)
+"""
+# DATA_FILENAME includes TRAIN_FILE_NAME or TEST_FILE_NAME
 def parseData(DATA_FILENAME):
     dataWordIndices = []
 
@@ -41,16 +93,8 @@ def parseData(DATA_FILENAME):
                     dataWordIndices.append(oneLineWordIndices)
                 
     return dataWordIndices
+
 """
-def getProblemAndAnswer(testStr):
-    pattern = '(^\d+\w\s)([\w|\s]+)( \[\w+)([\w|\s]*[^\n])(\n?)$'
-    m = re.match(pattern, testStr)
-    problem = m.group(2) + m.group(4) if m.group(4) != '' else m.group(2)
-    answer = m.group(3)
-
-    problemWords = problem.split(' ')
-    return (problemWords, answer[2:])
-
 def parseProblemsAndAnswers(TEST_FILENAME):
     problemSet = []
     answersSet = []
@@ -77,7 +121,7 @@ def outputCsvFileFromAnswerNumbers(guessAnswer, OUTPUT_FILE):
     with open(OUTPUT_FILE, 'w') as outputFile:
         outputFile.write('Id,Answer\n')
         for i in xrange(1040):
-            outputFile.write(str(i + 1) + ',' + chr(97 + guessAnswer[i]) + '\n' )
+            outputFile.write(str(i + 1) + ',' + ANSWERS[guessAnswer[i]] + '\n' )
 
 def dotproduct(v1, v2):
     return sum((a * b) for a, b in zip(v1, v2))
