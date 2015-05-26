@@ -24,12 +24,16 @@ print 'Training...'
 # ]
 trainLabels = [
     [1,2,3,4],
-    [5,6,7,3,4]
+    [5,6,7,3,4],
+    [2,3,4],
+    [5,6]
 ]
 
 TOTAL_WORDS = 8
-NEURON_NUM_LIST = [ HIDDEN_LAYER + [ wordUtil.WORD_VECTOR_SIZE ] ] + HIDDEN_LAYER + [ wordUtil.TOTAL_WORDS ]
+# NEURON_NUM_LIST = [ HIDDEN_LAYER + [ wordUtil.WORD_VECTOR_SIZE ] ] + HIDDEN_LAYER + [ wordUtil.TOTAL_WORDS ]
+NEURON_NUM_LIST = [ HIDDEN_LAYER + [ wordUtil.WORD_VECTOR_SIZE ] ] + HIDDEN_LAYER + [ [ wordUtil.WORD_CLASS_SIZE, wordUtil.WORD_CLASS_NUM ] ]
 
+wordUtil.genWordClassUtils(trainLabels)
 aRNN = rnn.rnn( NEURON_NUM_LIST, BPTT_ORDER, LEARNING_RATE, EPOCH_NUM, BATCH_SIZE, LOAD_MODEL_FILENAME )
 aRNN.train(trainLabels)
 
@@ -37,7 +41,11 @@ testLabels = [
     [1,2,3,4],
     [1,1,3,4],
     [5,6,7,3,6],
-    [5,6,7,3,4]
+    [5,6,7,3,4],
+    [2,3,4],
+    [5,3,4],
+    [5,6],
+    [5,7]
 ]
 print 'Testing...'
 aRNN.test(testLabels)

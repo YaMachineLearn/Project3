@@ -2,6 +2,11 @@ import parse
 import numpy as np
 import theano
 from theano import shared
+WORD_CLASS_NUM = 100 # number of classes
+WORD_CLASS_SIZE = TOTAL_WORDS / WORD_CLASS_NUM # size of a class
+# WORD_CLASSES = shared( np.asarray([1, 1, 1, 0, 0, 1, 0, 0], dtype='int32') )
+# WORD_CLASS_LABELS = shared( np.asarray([0, 1, 2, 0, 1, 3, 2, 3], dtype='int32') )
+WORD_VECTORS = shared( np.asarray([[1,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0], [0,0,1,0,0,0,0,0], [0,0,0,1,0,0,0,0], [0,0,0,0,1,0,0,0], [0,0,0,0,0,1,0,0], [0,0,0,0,0,0,1,0], [0,0,0,0,0,0,0,1]], dtype='int32') )
 
 WORD_VECTORS_FILENAME = "data/vec_reduced.txt"
 
@@ -26,3 +31,17 @@ WORD_INDEX_DICT = dict(zip(WORDS, range(TOTAL_WORDS)))
 
 def wordToindex(word):
     return WORD_INDEX_DICT.get(word, WORD_INDEX_DICT[OTHER_TYPE_SYMBOL])
+
+def genWordClassUtils(trainLabels): 
+    hist = np.bincount(np.asarray([item for sublist in trainLabels for item in sublist], dtype='int32')) 
+    totalWords = np.sum(hist) 
+    orderedIndices = np.argsort(hist) 
+    WORD_CLASSES_list = [-1] * TOTAL_WORDS 
+    WORD_CLASS_LABELS_list = [-1] * TOTAL_WORDS 
+    for i in xrange(TOTAL_WORDS): 
+        WORD_CLASSES_list[orderedIndices[TOTAL_WORDS - 1 - i]] = i / WORD_CLASS_SIZE
+        WORD_CLASS_LABELS_list[orderedIndices[TOTAL_WORDS - 1 - i]] = i % WORD_CLASS_SIZE
+    global WORD_CLASSES 
+    global WORD_CLASS_LABELS 
+    WORD_CLASSES = shared( np.asarray(WORD_CLASSES_list, dtype='int32') ) 
+    WORD_CLASS_LABELS = shared( np.asarray(WORD_CLASS_LABELS_list, dtype='int32') ) 

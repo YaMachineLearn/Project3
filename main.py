@@ -18,7 +18,7 @@ OUTPUT_CSV_FILENAME = "output/result.csv"
 # Nerual Network Parameters
 HIDDEN_LAYER = [128]  # 1 hidden layer
 BPTT_ORDER = 4
-LEARNING_RATE = 0.05
+LEARNING_RATE = 0.01
 EPOCH_NUM = 1  # number of epochs to run before saving the model
 BATCH_SIZE = 256
 
@@ -33,7 +33,14 @@ trainWordIndices = parse.parseData(TRAIN_FILENAME)
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
 
-NEURON_NUM_LIST = [ HIDDEN_LAYER + [ wordUtil.WORD_VECTOR_SIZE ] ] + HIDDEN_LAYER + [ wordUtil.TOTAL_WORDS ]
+# NEURON_NUM_LIST = [ HIDDEN_LAYER + [ wordUtil.WORD_VECTOR_SIZE ] ] + HIDDEN_LAYER + [ wordUtil.TOTAL_WORDS ]
+NEURON_NUM_LIST = [ HIDDEN_LAYER + [ wordUtil.WORD_VECTOR_SIZE ] ] + HIDDEN_LAYER + [ [ wordUtil.WORD_CLASS_SIZE, wordUtil.WORD_CLASS_NUM ] ]
+
+print 'Generating utils for class-based output layer...'
+t0 = time.time()
+wordUtil.genWordClassUtils(trainLabels)
+t1 = time.time()
+print '...costs ', t1 - t0, ' seconds'
 
 print 'Training...'
 aRNN = rnn.rnn( NEURON_NUM_LIST, BPTT_ORDER, LEARNING_RATE, EPOCH_NUM, BATCH_SIZE, LOAD_MODEL_FILENAME )

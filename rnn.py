@@ -53,22 +53,30 @@ class rnn:
         # add <START> at the start of each sentence
         trainFeatsArray = T.concatenate(  [ shared( np.zeros( (len(trainLabels), 1), dtype='int32' ) ), trainLabelsArray[:, 0 : maxLength -1] ], axis=1 )
         # outputRef = trainLabelsArray[sntncIndex, wordIndex]
-        outputRef = trainLabelsArray[sntncIndices, wordIndex]
+        # outputRef = trainLabelsArray[sntncIndices, wordIndex]
+        outputRef = wordUtil.WORD_CLASS_LABELS[trainLabelsArray[sntncIndices, wordIndex]]
+        outputClassRef = wordUtil.WORD_CLASSES[trainLabelsArray[sntncIndices, wordIndex]]
+        # print wordUtil.WORD_VECTORS[ trainLabelsArray[0:2, 0] ].dimshuffle(0, 'x', 1).eval()
+        # print self.weightMatrices[2][ wordUtil.WORD_CLASSES[0:2] ].eval()
 
+        # def recurrence(x_t, h_tm1): 
         def recurrence(x_t, h_tm1): 
             # h_t = T.nnet.sigmoid( T.dot(self.weightMatrices[0], h_tm1) + T.dot(self.weightMatrices[1], x_t) )
-            # y_t = ( T.nnet.softmax( ( T.dot(self.weightMatrices[2], h_t) ).T ) ).T
             h_t = T.nnet.sigmoid( T.dot(h_tm1, self.weightMatrices[0]) + T.dot(x_t, self.weightMatrices[1]) )
-            y_t = T.nnet.softmax( T.dot(h_t, self.weightMatrices[2]) )
-            return [h_t, y_t]
+            return h_t
 
         startIndex = T.maximum( 0, wordIndex - self.bpttOrder + 1 )
         # x = wordUtil.WORD_VECTORS[trainFeatsArray[sntncIndices, startIndex : wordIndex + 1]].dimshuffle(1, 2, 0)
         x = wordUtil.WORD_VECTORS[trainFeatsArray[sntncIndices, startIndex : wordIndex + 1]].dimshuffle(1, 0, 2)
-        [h, y], _ = theano.scan(fn=recurrence, sequences=x, outputs_info=[self.lastHiddenOut, None], n_steps=x.shape[0])
+        h, _ = theano.scan(fn=recurrence, sequences=x, outputs_info=self.lastHiddenOut, n_steps=x.shape[0])
         # cost = - T.sum( T.switch( T.lt(wordIndex, trainSntncLengthsVec[sntncIndices]), T.log(y[-1][outputRef, range(self.batchSize)]), 0.0 ) )
-        cost = - T.sum( T.switch( T.lt(wordIndex, trainSntncLengthsVec[sntncIndices]), T.log(y[-1][range(self.batchSize), outputRef]), 0.0 ) )
-        train_model = function(inputs=[sntncIndices, wordIndex], outputs=[y[-1], cost], updates=self.updateScan(cost, h[0], T.gt(startIndex, 0), T.eq(wordIndex, maxLength - 1)))
+        # y = T.nnet.softmax( T.dot(h[-1], self.weightMatrices[2]) )
+        y_o = T.nnet.softmax( T.batched_dot(h[-1].dimshuffle(0, 'x', 1), self.weightMatrices[2][ wordUtil.WORD_CLASSES[outputClassRef] ]).reshape([self.batchSize, wordUtil.WORD_CLASS_SIZE]) )
+        y_c = T.nnet.softmax( T.dot(h[-1], self.weightMatrices[3]) )
+        # cost = - T.sum( T.switch( T.lt(wordIndex, trainSntncLengthsVec[sntncIndices]), T.log(y[range(self.batchSize), outputRef]), 0.0 ) )
+        cost = - T.sum( T.switch( T.lt(wordIndex, trainSntncLengthsVec[sntncIndices]), T.log(y_o[range(self.batchSize), outputRef]) + T.log(y_c[range(self.batchSize), outputClassRef]), 0.0 ) )
+        # train_model = function(inputs=[sntncIndices, wordIndex], outputs=[y, cost], updates=self.updateScan(cost, h[0], T.gt(startIndex, 0), T.eq(wordIndex, maxLength - 1)))
+        train_model = function(inputs=[sntncIndices, wordIndex], outputs=[y_o, y_c, cost], updates=self.updateScan(cost, h[0], T.gt(startIndex, 0), T.eq(wordIndex, maxLength - 1)))
 
         # Start training...
         numOfBatches = len(trainLabels) / self.batchSize
@@ -89,7 +97,8 @@ class rnn:
                     self.wordIndex = j
                     # self.out, self.cost = ( train_models[min(j, self.bpttOrder - 1)] )(shuffledIndex[i], j)
                     # self.out, self.cost = ( train_models[min(j, self.bpttOrder - 1)] )(shuffledIndex[i*self.batchSize : (i+1)*self.batchSize], j)
-                    self.out, self.cost = train_model(shuffledIndex[i*self.batchSize : (i+1)*self.batchSize], j)
+                    # self.out, self.cost = train_model(shuffledIndex[i*self.batchSize : (i+1)*self.batchSize], j)
+                    self.out, self.outClass, self.cost = train_model(shuffledIndex[i*self.batchSize : (i+1)*self.batchSize], j)
                     print 'Cost: ', self.cost
                     # print 'Out: ', self.out
                     # sumCost = sumCost + self.cost
@@ -100,16 +109,17 @@ class rnn:
         # self.calculateError(trainFeats, trainLabels)
 
     def test(self, testLabels):
-        numOfChoices = 2
+        numOfChoices = 5
         self.lastHiddenOut = self.initLastHiddenOut(len(testLabels))
         test_model, maxLength, testSntncLengths = self.getForwardFunction(testLabels, len(testLabels), self.weightMatrices)
         sntncProbs = np.ones(len(testLabels), dtype=theano.config.floatX)
         for i in xrange(maxLength):
-            outputArray = test_model(0, i)
+            outputArray, outputClassArray = test_model(0, i)
             for j in xrange(len(testLabels)):
                 if ( i < testSntncLengths[j] ):
                     # sntncProbs[j] *= outputArray[testLabels[j][i], j]
-                    sntncProbs[j] *= outputArray[j, testLabels[j][i]]
+                    # sntncProbs[j] *= outputArray[j, testLabels[j][i]]
+                    sntncProbs[j] *= outputArray[j, wordUtil.WORD_CLASS_LABELS[testLabels[j][i]].eval()] * outputClassArray[j, wordUtil.WORD_CLASSES[testLabels[j][i]].eval()]
             print 'sntncProbs: ', sntncProbs
         predictLabels = [ np.argmax(sntncProbs[i * numOfChoices : (i+1) * numOfChoices]) for i in xrange(len(testLabels) / numOfChoices) ]
         print predictLabels
@@ -135,7 +145,9 @@ class rnn:
         wordIndex = T.iscalar()
         testLabelsArray = shared(np.asarray(testLabels, dtype='int32'))
         testFeatsArray = T.concatenate(  [ shared( np.zeros( (len(testLabels), 1), dtype='int32' ) ), testLabelsArray[:, 0 : maxLength -1] ], axis=1 )
-        outputRef = testLabelsArray[sntncIndex * batchSize : (sntncIndex+1) * batchSize, wordIndex]
+        # outputRef = testLabelsArray[sntncIndex * batchSize : (sntncIndex+1) * batchSize, wordIndex]
+        outputRef = wordUtil.WORD_CLASS_LABELS[testLabelsArray[sntncIndex * batchSize : (sntncIndex+1) * batchSize, wordIndex]]
+        outputClassRef = wordUtil.WORD_CLASSES[testLabelsArray[sntncIndex * batchSize : (sntncIndex+1) * batchSize, wordIndex]]
         lineIn_h = self.lastHiddenOut
         
         # lineIn_i = (wordUtil.WORD_VECTORS[testFeatsArray[sntncIndex * batchSize : (sntncIndex+1) * batchSize, wordIndex]]).T # .T means transpose
@@ -144,16 +156,21 @@ class rnn:
         weightMatrix_i = self.weightMatrices[1]
         # lineOutput_h = T.dot(weightMatrix_h, lineIn_h) + T.dot(weightMatrix_i, lineIn_i)
         lineOutput_h = T.dot(lineIn_h, weightMatrix_h) + T.dot(lineIn_i, weightMatrix_i)
-        lineIn_h = 1. / (1. + T.exp(-lineOutput_h)) # the output of the current layer is the input of the next layer
+        lineIn_h = T.nnet.sigmoid(lineOutput_h)
 
         # weightMatrix_o = self.weightMatrices[2 * self.bpttOrder]
-        weightMatrix_o = self.weightMatrices[2]
+        weightMatrix_o = self.weightMatrices[2][ wordUtil.WORD_CLASSES[outputClassRef] ]
+        weightMatrix_c = self.weightMatrices[3]
         # lineOutput_o = T.dot(weightMatrix_o, lineIn_h)
-        lineOutput_o = T.dot(lineIn_h, weightMatrix_o)
+        # lineOutput_o = T.dot(lineIn_h, weightMatrix_o)
+        lineOutput_o = T.batched_dot(lineIn_h.dimshuffle(0, 'x', 1), weightMatrix_o).reshape([batchSize, wordUtil.WORD_CLASS_SIZE])
+        lineOutput_c = T.dot(lineIn_h, weightMatrix_c)
         # outputVector = ( T.nnet.softmax(lineOutput_o.T) ).T # .T means transpose
         outputVector = T.nnet.softmax(lineOutput_o) 
+        outputClassVector = T.nnet.softmax(lineOutput_c) 
 
-        test_model = function(inputs=[sntncIndex, wordIndex], outputs=outputVector, updates=self.updateTest(lineIn_h, T.eq(wordIndex, maxLength - 1), batchSize))
+        # test_model = function(inputs=[sntncIndex, wordIndex], outputs=outputVector, updates=self.updateTest(lineIn_h, T.eq(wordIndex, maxLength - 1), batchSize))
+        test_model = function(inputs=[sntncIndex, wordIndex], outputs=[outputVector, outputClassVector], updates=self.updateTest(lineIn_h, T.eq(wordIndex, maxLength - 1), batchSize))
         return [test_model, maxLength, testSntncLengths]
 
     def backProp(self):
@@ -229,13 +246,20 @@ class rnn:
         w_i = np.asarray( np.random.normal(
             loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[1]),
             size=(self.neuronNumList[0][1], self.neuronNumList[1])), dtype=theano.config.floatX)
+        # w_o = np.asarray( np.random.normal(
+        #     loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[2]),
+        #     size=(self.neuronNumList[1], self.neuronNumList[2])), dtype=theano.config.floatX)
         w_o = np.asarray( np.random.normal(
-            loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[2]),
-            size=(self.neuronNumList[1], self.neuronNumList[2])), dtype=theano.config.floatX)
+            loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[2][0]),
+            size=(self.neuronNumList[2][1], self.neuronNumList[1], self.neuronNumList[2][0])), dtype=theano.config.floatX)
+        w_c = np.asarray( np.random.normal(
+            loc=0.0, scale=1.0/np.sqrt(self.neuronNumList[2][1]),
+            size=(self.neuronNumList[1], self.neuronNumList[2][1])), dtype=theano.config.floatX)
         # for i in range( self.bpttOrder ):    #ex: range(5-1) => 0, 1, 2, 3
         self.weightMatrices.append( shared(w_h) )
         self.weightMatrices.append( shared(w_i) )
         self.weightMatrices.append( shared(w_o) )
+        self.weightMatrices.append( shared(w_c) )
 
     def saveModel(self, SAVE_MODEL_FILENAME):
         with open(SAVE_MODEL_FILENAME, 'w') as outputModelFile:
