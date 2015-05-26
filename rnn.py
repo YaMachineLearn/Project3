@@ -267,6 +267,10 @@ class rnn:
                 # Saving weight matrices
                 weightMatrix = np.asarray(self.weightMatrices[i].get_value(borrow=True, return_internal_type=True))
                 weightMatrixDim = weightMatrix.shape  # Shape (matrix height, matrix width)
+                outputModelFile.write(str(weightMatrix.ndim))
+                if (weightMatrix.ndim == 3):
+                    outputModelFile.write(' ' + str(weightMatrixDim))
+                outputModelFile.write('\n')
                 for row in xrange(weightMatrixDim[0]):
                     for col in xrange(weightMatrixDim[1]):
                         outputModelFile.write(str(weightMatrix[row][col]) + ' ')
