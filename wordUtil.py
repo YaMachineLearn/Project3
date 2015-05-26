@@ -6,7 +6,7 @@ WORD_CLASS_NUM = 100 # number of classes
 WORD_CLASS_SIZE = None # will be size of a class
 # WORD_CLASSES = shared( np.asarray([1, 1, 1, 0, 0, 1, 0, 0], dtype='int32') )
 # WORD_CLASS_LABELS = shared( np.asarray([0, 1, 2, 0, 1, 3, 2, 3], dtype='int32') )
-WORD_VECTORS = shared( np.asarray([[1,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0], [0,0,1,0,0,0,0,0], [0,0,0,1,0,0,0,0], [0,0,0,0,1,0,0,0], [0,0,0,0,0,1,0,0], [0,0,0,0,0,0,1,0], [0,0,0,0,0,0,0,1]], dtype='int32') )
+# WORD_VECTORS = shared( np.asarray([[1,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0], [0,0,1,0,0,0,0,0], [0,0,0,1,0,0,0,0], [0,0,0,0,1,0,0,0], [0,0,0,0,0,1,0,0], [0,0,0,0,0,0,1,0], [0,0,0,0,0,0,0,1]], dtype='int32') )
 
 WORD_VECTORS_FILENAME = "data/vec_reduced.txt"
 

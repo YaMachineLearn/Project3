@@ -38,7 +38,7 @@ NEURON_NUM_LIST = [ HIDDEN_LAYER + [ wordUtil.WORD_VECTOR_SIZE ] ] + HIDDEN_LAYE
 
 print 'Generating utils for class-based output layer...'
 t0 = time.time()
-wordUtil.genWordClassUtils(trainLabels)
+wordUtil.genWordClassUtils(trainWordIndices)
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
 
