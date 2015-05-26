@@ -13,7 +13,7 @@ SAVE_MODEL_FILENAME = "models/rnn.model"
 LOAD_MODEL_FILENAME = None #"models/dnn.model" <- Change this if you want to train from an existing model
 
 # Result output csv file
-OUTPUT_CSV_FILENAME = "output/result.csv"
+#OUTPUT_CSV_FILENAME = "output/result.csv"
 
 # Nerual Network Parameters
 HIDDEN_LAYER = [128]  # 1 hidden layer
@@ -23,7 +23,7 @@ EPOCH_NUM = 1  # number of epochs to run before saving the model
 BATCH_SIZE = 256
 
 
-currentEpoch = 1
+currentEpoch = 0
 
 print 'Parsing training data...'
 t0 = time.time()
@@ -56,24 +56,23 @@ while True:
     currentEpoch += EPOCH_NUM
 
     # Saving the Neural Network Model
-    modelInfo = "_ER" + str(aRNN.errorRate)[2:5] \
-        + "_CO" + str(aRNN.cost)[0:7] \
+    modelInfo = "_CO" + str(aRNN.cost)[0:7] \
         + "_HL" + str(HIDDEN_LAYER[0]) + "-" + str(len(HIDDEN_LAYER)) \
         + "_EP" + str(currentEpoch) \
         + "_LR" + str(LEARNING_RATE) \
         + "_BS" + str(BATCH_SIZE)
-    SAVE_MODEL_FILENAME = "models/DNN" + modelInfo + ".model"
+    SAVE_MODEL_FILENAME = "models/RNN" + modelInfo + ".model"
     aRNN.saveModel(SAVE_MODEL_FILENAME)
 
-    # print 'Testing...'
-    # t4 = time.time()
-    # testLabels = aDNN.test(testFeats)
-    # t5 = time.time()
-    # print '...costs', t5 - t4, ' seconds'
+    print 'Testing...'
+    t4 = time.time()
+    testLabels = aDNN.test(testFeats)
+    t5 = time.time()
+    print '...costs', t5 - t4, ' seconds'
 
-    # print 'Writing to csv file...'
-    # OUTPUT_CSV_FILE_NAME = "output/TEST" + modelInfo + ".csv"
-    # parse.outputTestLabelAsCsv(testFrameNames, testLabels, OUTPUT_CSV_FILE_NAME)
+    print 'Writing to csv file...'
+    OUTPUT_CSV_FILENAME = "output/TEST" + modelInfo + ".csv"
+    parse.outputCsvFileFromAnswerNumbers(testLabels, OUTPUT_CSV_FILENAME)
 
 # print 'Parsing test data...'
 # t0 = time.time()
