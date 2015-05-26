@@ -271,11 +271,19 @@ class rnn:
                 if (weightMatrix.ndim == 3):
                     outputModelFile.write(' ' + str(weightMatrixDim))
                 outputModelFile.write('\n')
-                for row in xrange(weightMatrixDim[0]):
-                    for col in xrange(weightMatrixDim[1]):
-                        outputModelFile.write(str(weightMatrix[row][col]) + ' ')
+                if (weightMatrix.ndim == 3):
+                    for line in xrange(weightMatrixDim[0]): 
+                        for row in xrange(weightMatrixDim[1]):
+                            for col in xrange(weightMatrixDim[2]):
+                                outputModelFile.write(str(weightMatrix[line][row][col]) + ' ')
+                            outputModelFile.write('\n')
+                        outputModelFile.write('\n')
+                else:                    
+                    for row in xrange(weightMatrixDim[0]):
+                        for col in xrange(weightMatrixDim[1]):
+                            outputModelFile.write(str(weightMatrix[row][col]) + ' ')
+                        outputModelFile.write('\n')
                     outputModelFile.write('\n')
-                outputModelFile.write('\n')
 
     def loadModel(self, LOAD_MODEL_FILENAME):
         print 'Loading Neural Network Model...'
