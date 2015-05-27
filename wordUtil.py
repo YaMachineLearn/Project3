@@ -5,7 +5,7 @@ import theano
 from theano import shared
 # TOTAL_WORDS = 8
 # WORD_VECTOR_SIZE = 8
-WORD_CLASS_NUM = 3 # number of classes
+WORD_CLASS_NUM = 64 # number of classes
 WORD_CLASS_SIZE = None # will be size of a class
 # WORD_CLASSES = shared( np.asarray([1, 1, 1, 0, 0, 1, 0, 0], dtype='int32') )
 # WORD_CLASS_LABELS = shared( np.asarray([0, 1, 2, 0, 1, 3, 2, 3], dtype='int32') )
@@ -49,3 +49,29 @@ def genWordClassUtils(trainLabels):
     global WORD_CLASS_LABELS 
     WORD_CLASSES = shared( np.asarray(WORD_CLASSES_list, dtype='int32') ) 
     WORD_CLASS_LABELS = shared( np.asarray(WORD_CLASS_LABELS_list, dtype='int32') ) 
+
+    saveWordClassUtilsModel("models/wordClass.dat", WORD_CLASSES_list, WORD_CLASS_LABELS_list)
+
+def saveWordClassUtilsModel(WORD_CLASS_FILE, WORD_CLASSES_list, WORD_CLASS_LABELS_list):
+    with open(WORD_CLASS_FILE, 'w') as wordClassFile:
+        for ele in WORD_CLASSES_list:
+            wordClassFile.write(str(ele))
+            wordClassFile.write(' ')
+        wordClassFile.write('\n')
+        for ele in WORD_CLASS_LABELS_list:
+            wordClassFile.write(str(ele))
+            wordClassFile.write(' ')
+        wordClassFile.write('\n')
+
+def loadWordClassUtilsModel(WORD_CLASS_FILE):
+    global WORD_CLASSES 
+    global WORD_CLASS_LABELS 
+
+    with open(WORD_CLASS_FILE) as wordClassFile:
+        line1 = wordClassFile.readline()
+        WORD_CLASSES_list = [int(ele) for ele in line1.split()]
+        WORD_CLASSES = shared( np.asarray(WORD_CLASSES_list, dtype='int32') ) 
+
+        line2 = wordClassFile.readline()
+        WORD_CLASS_LABELS_list = [int(ele) for ele in line2.split()]
+        WORD_CLASS_LABELS = shared( np.asarray(WORD_CLASS_LABELS_list, dtype='int32') ) 

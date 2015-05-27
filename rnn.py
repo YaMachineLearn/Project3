@@ -290,7 +290,7 @@ class rnn:
         t0 = time.time()
         with open(LOAD_MODEL_FILENAME) as modelFile:
             weightMatrix = []
-            lines = [line for line in modelFile]
+            lines = [line for line in modelFile]    #modelFile.readlines()
             lineIndex = 0
             while lineIndex < len(lines):
                 line = lines[lineIndex]
@@ -299,7 +299,7 @@ class rnn:
                 # lineIndex += 1
                 if int(rowList[0]) == 3:
                     weightSubMatrix = []
-                    for i in xrange(int(rowList[1][1:-2])):
+                    for i in xrange(int(rowList[1][1:-1])):
                         lineIndex += 1
                         line = lines[lineIndex]
                         while line != '\n':
