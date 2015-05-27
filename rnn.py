@@ -87,8 +87,8 @@ class rnn:
             print '- Epoch', epoch + 1
 
             count = 0
-            sumCost = 0.
             for i in xrange(numOfBatches): #feats and labels are shuffled, so don't need random index here
+                sumCost = 0.
                 progress = float(count + (numOfBatches * epoch)) / float(numOfBatches * self.epochNum) * 100.
                 sys.stdout.write('Epoch %d, Progress: %f%%    \r' % (epoch, progress))
                 sys.stdout.flush()
@@ -99,17 +99,17 @@ class rnn:
                     # self.out, self.cost = ( train_models[min(j, self.bpttOrder - 1)] )(shuffledIndex[i*self.batchSize : (i+1)*self.batchSize], j)
                     # self.out, self.cost = train_model(shuffledIndex[i*self.batchSize : (i+1)*self.batchSize], j)
                     self.out, self.outClass, self.cost = train_model(shuffledIndex[i*self.batchSize : (i+1)*self.batchSize], j)
-                    print 'Cost: ', self.cost
+                    # print 'Cost: ', self.cost
                     # print 'Out: ', self.out
-                    # sumCost = sumCost + self.cost
+                    sumCost = sumCost + self.cost
                 count = count + 1
-            # self.cost = sumCost / float(numOfBatches)
-            # print 'Cost: ', sumCost / float(numOfBatches)
+                self.cost = sumCost / float(numOfBatches)
+                print 'Cost: ', sumCost / float(numOfBatches)
 
         # self.calculateError(trainFeats, trainLabels)
 
     def test(self, testLabels):
-        numOfChoices = 5
+        numOfChoices = 2
         self.lastHiddenOut = self.initLastHiddenOut(len(testLabels))
         test_model, maxLength, testSntncLengths = self.getForwardFunction(testLabels, len(testLabels), self.weightMatrices)
         sntncProbs = np.ones(len(testLabels), dtype=theano.config.floatX)
@@ -289,16 +289,40 @@ class rnn:
         print 'Loading Neural Network Model...'
         t0 = time.time()
         with open(LOAD_MODEL_FILENAME) as modelFile:
-            i = 0
             weightMatrix = []
-            for line in modelFile:
-                if line == '\n':
+            lines = [line for line in modelFile]
+            lineIndex = 0
+            while lineIndex < len(lines):
+                line = lines[lineIndex]
+                rowList = line.rstrip().split(" ")
+                # print int(rowList[0])
+                # lineIndex += 1
+                if int(rowList[0]) == 3:
+                    weightSubMatrix = []
+                    for i in xrange(int(rowList[1][1:-2])):
+                        lineIndex += 1
+                        line = lines[lineIndex]
+                        while line != '\n':
+                            rowList = line.rstrip().split(" ")
+                            weightSubMatrix.append([float(ele) for ele in rowList])
+                            lineIndex += 1
+                            line = lines[lineIndex]
+                        weightMatrix.append(weightSubMatrix)
+                        weightSubMatrix = []
                     self.weightMatrices.append(shared(np.asarray(weightMatrix)))
                     weightMatrix = []
-                    i += 1
-                if line.rstrip():
-                    rowList = line.rstrip().split(" ")
-                    weightMatrix.append([float(ele) for ele in rowList])
+                else:
+                    lineIndex += 1
+                    line = lines[lineIndex]
+                    while line != '\n':
+                        rowList = line.rstrip().split(" ")
+                        weightMatrix.append([float(ele) for ele in rowList])
+                        lineIndex += 1
+                        line = lines[lineIndex]
+                    self.weightMatrices.append(shared(np.asarray(weightMatrix)))
+                    weightMatrix = []
+                lineIndex += 1
+            line = modelFile.readline()
 
         t1 = time.time()
         print '...costs ', t1 - t0, ' seconds'

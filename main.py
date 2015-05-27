@@ -63,16 +63,22 @@ while True:
         + "_BS" + str(BATCH_SIZE)
     SAVE_MODEL_FILENAME = "models/RNN" + modelInfo + ".model"
     aRNN.saveModel(SAVE_MODEL_FILENAME)
+    
+    print 'Parsing testing data...'
+    t0 = time.time()
+    testWordIndices = parse.parseData(PROBLEM_FILENAME)
+    t1 = time.time()
+    print '...costs ', t1 - t0, ' seconds'
 
     print 'Testing...'
     t4 = time.time()
-    testLabels = aDNN.test(testFeats)
+    predictIndices = aDNN.test(testWordIndices)
     t5 = time.time()
     print '...costs', t5 - t4, ' seconds'
 
     print 'Writing to csv file...'
     OUTPUT_CSV_FILENAME = "output/TEST" + modelInfo + ".csv"
-    parse.outputCsvFileFromAnswerNumbers(testLabels, OUTPUT_CSV_FILENAME)
+    parse.outputCsvFileFromAnswerNumbers(predictIndices, OUTPUT_CSV_FILENAME)
 
 # print 'Parsing test data...'
 # t0 = time.time()

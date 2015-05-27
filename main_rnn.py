@@ -48,4 +48,13 @@ testLabels = [
     [5,7]
 ]
 print 'Testing...'
-aRNN.test(testLabels)
+predictIndices = aRNN.test(testLabels)
+
+print 'Saving model...'
+def outputCsvFileFromAnswerNumbers(guessAnswer, OUTPUT_FILE):
+    with open(OUTPUT_FILE, 'w') as outputFile:
+        outputFile.write('Id,Answer\n')
+        for i in xrange(len(guessAnswer)):
+            outputFile.write(str(i + 1) + ',' + chr(97 + guessAnswer[i]) + '\n' )
+OUTPUT_CSV_FILENAME = "output/TEST.csv"
+outputCsvFileFromAnswerNumbers(predictIndices, OUTPUT_CSV_FILENAME)
