@@ -1,8 +1,11 @@
 import parse
 import numpy as np
+from math import ceil
 import theano
 from theano import shared
-WORD_CLASS_NUM = 100 # number of classes
+# TOTAL_WORDS = 8
+# WORD_VECTOR_SIZE = 8
+WORD_CLASS_NUM = 3 # number of classes
 WORD_CLASS_SIZE = None # will be size of a class
 # WORD_CLASSES = shared( np.asarray([1, 1, 1, 0, 0, 1, 0, 0], dtype='int32') )
 # WORD_CLASS_LABELS = shared( np.asarray([0, 1, 2, 0, 1, 3, 2, 3], dtype='int32') )
@@ -25,7 +28,7 @@ WORD_VECTORS = shared( np.asarray(parsedWordVectors[1:], dtype=theano.config.flo
 WORDS = parsedWords[1:]
 
 TOTAL_WORDS = len(WORDS)  # Number of words including the OTHER type
-WORD_CLASS_SIZE = TOTAL_WORDS / WORD_CLASS_NUM # size of a class
+WORD_CLASS_SIZE = int(ceil(float(TOTAL_WORDS) / float(WORD_CLASS_NUM))) # size of a class
 
 # Making dictionaries for word <-> word index mapping
 WORD_INDEX_DICT = dict(zip(WORDS, range(TOTAL_WORDS)))
