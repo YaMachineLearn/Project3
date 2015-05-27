@@ -90,8 +90,8 @@ class rnn:
             for i in xrange(numOfBatches): #feats and labels are shuffled, so don't need random index here
                 sumCost = 0.
                 progress = float(count + (numOfBatches * epoch)) / float(numOfBatches * self.epochNum) * 100.
-                sys.stdout.write('Epoch %d, Progress: %f%%    \r' % (epoch, progress))
-                sys.stdout.flush()
+                # sys.stdout.write('Epoch %d, Progress: %f%%    \r' % (epoch, progress))
+                # sys.stdout.flush()
                 self.initLastHiddenOut()
                 for j in xrange( max([ trainSntncLengths[index] for index in shuffledIndex[i*self.batchSize : (i+1)*self.batchSize] ]) ):
                     self.wordIndex = j
@@ -104,12 +104,12 @@ class rnn:
                     sumCost = sumCost + self.cost
                 count = count + 1
                 self.cost = sumCost / float(numOfBatches)
-                print 'Cost: ', sumCost / float(numOfBatches)
+                print 'Cost: ', sumCost / float(numOfBatches), ', Progress: ', progress, ' %'
 
         # self.calculateError(trainFeats, trainLabels)
 
     def test(self, testLabels):
-        numOfChoices = 2
+        numOfChoices = 5
         self.lastHiddenOut = self.initLastHiddenOut(len(testLabels))
         test_model, maxLength, testSntncLengths = self.getForwardFunction(testLabels, len(testLabels), self.weightMatrices)
         sntncProbs = np.ones(len(testLabels), dtype=theano.config.floatX)
