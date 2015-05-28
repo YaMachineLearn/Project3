@@ -29,14 +29,27 @@ class RNNLM(object):
         for epoch in xrange(epochNum):
             print >> sys.stderr, '  Epoch -', epoch + 1, ':'
             t0 = time.time()
-            sumCost = 0
+            sumEpochCost = 0
+            epochProgress = 0.
             for batchIndex in xrange(batchNum):
+                sumBatchCost = 0
+                sys.stdout.write('    Epoch Progress: %2.4f%%, Batch: %d/%d\r' % (epochProgress, batchIndex + 1, batchNum))
+                sys.stdout.flush()
+
                 sentenceLength = len(trainData[batchIndex * batchSize])
                 for wordIndex in xrange(sentenceLength - 1):
                     probOutputGiveInput, cost = trainFunction(batchIndex, wordIndex, learningRate)
-                    sumCost += cost
+                    sumBatchCost += cost
+
+                averageBatchCost = (sumBatchCost / (sentenceLength - 1))
+                sumEpochCost += averageBatchCost
+                epochProgress = float(batchIndex + 1) / float(batchNum) * 100.
+                sys.stdout.write('    Epoch Progress: %2.4f%%, Batch: %d/%d, Avg batch cost per word: %2.4f    \r' % (epochProgress, batchIndex + 1, batchNum, averageBatchCost))
+                sys.stdout.flush()
             t1 = time.time()
-            print '  ...Average cost per batch:', sumCost / batchNum
+            sys.stdout.write('                                                                             \r')
+            sys.stdout.flush()
+            print '  ...Average epoch cost per batch:', sumEpochCost / batchNum
             print '  ...costs', t1 - t0, 'seconds'
 
         self.saveModel()
@@ -55,11 +68,21 @@ class RNNLM(object):
 
         print >> sys.stderr, '  Start Testing...'
         t0 = time.time()
+        progress = 0.
         for batchIndex in xrange(batchNum):
+            sys.stdout.write('    Progress: %2.4f%%, Batch: %d/%d    \r' % (progress, batchIndex + 1, batchNum))
+            sys.stdout.flush()
+
             [answerChoice, logProbability] = testFunction(batchIndex)
             answers.append(answerChoice.item())  # Answer choice is a numpy 0-d array, using .item() to get the value
             # print logProbability
+
+            progress = float(batchIndex + 1) / float(batchNum) * 100.
+            sys.stdout.write('    Progress: %2.4f%%, Batch: %d/%d    \r' % (progress, batchIndex + 1, batchNum))
+            sys.stdout.flush()
         t1 = time.time()
+        sys.stdout.write('                                       \r')
+        sys.stdout.flush()
         print >> sys.stderr, '  ...costs ', t1 - t0, ' seconds'
         return answers
 

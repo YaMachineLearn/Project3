@@ -49,7 +49,7 @@ aRNNLM = RNNLM(NEURON_NUM_LIST, SAVE_MODEL_FILENAME, LOAD_MODEL_FILENAME)
 
 print 'Training...'
 t0 = time.time()
-aRNNLM.train(EPOCH_NUM, TEST_BATCH_SIZE, BPTT_ORDER, LEARNING_RATE, trainWordIndices)
+aRNNLM.train(EPOCH_NUM, TRAIN_BATCH_SIZE, BPTT_ORDER, LEARNING_RATE, trainWordIndices)
 t1 = time.time()
 print '...costs', t1 - t0, 'seconds'
 
