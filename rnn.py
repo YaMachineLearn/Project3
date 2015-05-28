@@ -111,22 +111,51 @@ class rnn:
     def test(self, testLabels):
         numOfChoices = 5
         self.lastHiddenOut = self.initLastHiddenOut(len(testLabels))
-        test_model, maxLength, testSntncLengths = self.getForwardFunction(testLabels, len(testLabels), self.weightMatrices)
-        sntncProbs = np.ones(len(testLabels), dtype=theano.config.floatX)
-        for i in xrange(maxLength):
-            outputArray, outputClassArray = test_model(0, i)
-            for j in xrange(len(testLabels)):
-                if ( i < testSntncLengths[j] ):
-                    # sntncProbs[j] *= outputArray[testLabels[j][i], j]
-                    # sntncProbs[j] *= outputArray[j, testLabels[j][i]]
-                    sntncProbs[j] *= outputArray[j, wordUtil.WORD_CLASS_LABELS[testLabels[j][i]].eval()] * outputClassArray[j, wordUtil.WORD_CLASSES[testLabels[j][i]].eval()]
-            print 'sntncProbs: ', sntncProbs
-        predictLabels = [ np.argmax(sntncProbs[i * numOfChoices : (i+1) * numOfChoices]) for i in xrange(len(testLabels) / numOfChoices) ]
+        test_model, maxLength, testSntncLengths = self.getForwardFunctionScan(testLabels, len(testLabels), self.weightMatrices)
+        sntncProbs = test_model(0)
+        print 'sntncProbs: ', sntncProbs
+        predictLabels = []
+        for i in xrange(len(testLabels) / numOfChoices):
+            probs = [ sntncProbs[testSntncLengths[i * numOfChoices + j] - 1, i * numOfChoices + j] for j in xrange(numOfChoices) ]
+            print probs
+            predictLabels.append( np.argmax(probs) )
         print predictLabels
         return predictLabels
 
     def forward(self):
         pass
+
+    def getForwardFunctionScan(self, testLabels, batchSize, weightMatrices):
+        testSntncLengths = []
+        maxLength = 1
+        for sentence in testLabels:
+            testSntncLengths.append( len(sentence) )
+            if ( len(sentence) > maxLength ):
+                maxLength = len(sentence)
+        for i in xrange(len(testLabels)):
+            # testFeats[i].extend( [ [0] * self.neuronNumList[0][1] for j in xrange(maxLength - testSntncLengths[i]) ] )
+            testLabels[i].extend( [0] * (maxLength - testSntncLengths[i]) )
+
+        # testFeatsArray = shared( np.asarray(testFeats, dtype=theano.config.floatX) )
+
+        sntncIndex = T.iscalar()
+        testLabelsArray = shared(np.asarray(testLabels, dtype='int32'))
+        testFeatsArray = T.concatenate(  [ shared( np.zeros( (len(testLabels), 1), dtype='int32' ) ), testLabelsArray[:, 0 : maxLength -1] ], axis=1 )
+        outputRef = (wordUtil.WORD_CLASS_LABELS[testLabelsArray[sntncIndex * batchSize : (sntncIndex+1) * batchSize]]).T
+        outputClassRef = (wordUtil.WORD_CLASSES[testLabelsArray[sntncIndex * batchSize : (sntncIndex+1) * batchSize]]).T
+        
+        def recurrence(x_t, outputRef_t, outputClassRef_t, h_tm1, prob_tm1): 
+            h_t = T.nnet.sigmoid( T.dot(h_tm1, self.weightMatrices[0]) + T.dot(x_t, self.weightMatrices[1]) )
+            y_o_t = T.nnet.softmax( T.batched_dot(h_t.dimshuffle(0, 'x', 1), self.weightMatrices[2][ wordUtil.WORD_CLASSES[outputClassRef_t] ]).reshape([batchSize, wordUtil.WORD_CLASS_SIZE]) )
+            y_c_t = T.nnet.softmax( T.dot(h_t, self.weightMatrices[3]) )
+            prob_t = prob_tm1 + T.log(y_o_t[range(batchSize), outputRef_t]) + T.log(y_c_t[range(batchSize), outputClassRef_t])
+            return [h_t, prob_t]
+
+        x = wordUtil.WORD_VECTORS[testFeatsArray[sntncIndex * batchSize : (sntncIndex+1) * batchSize]].dimshuffle(1, 0, 2)
+        initialProb = shared( np.zeros( (batchSize), dtype=theano.config.floatX ) )
+        [h, prob], _ = theano.scan(fn=recurrence, sequences=[x, outputRef, outputClassRef], outputs_info=[self.lastHiddenOut, initialProb], n_steps=x.shape[0])
+        test_model = function(inputs=[sntncIndex], outputs=prob)
+        return [test_model, maxLength, testSntncLengths]
 
     def getForwardFunction(self, testLabels, batchSize, weightMatrices):
         testSntncLengths = []
