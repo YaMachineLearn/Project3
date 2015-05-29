@@ -55,8 +55,8 @@ def parseAndClusterTrainData(TRAIN_FILE, BATCH_SIZE, SNTNC_LEN_THRES=SENTENCE_LE
     # shuffle sentences by shuffle the index
     # because we will discard part of the data
     # because we want len of each cluster be BATCH_SIZE*n
-    shuffledIndex = range(len(sentences))
-    random.shuffle(shuffledIndex)
+    shuffledIndices = range(len(sentences))
+    random.shuffle(shuffledIndices)
 
     #cluster sentences
     clusteredSentences = list()
@@ -64,10 +64,10 @@ def parseAndClusterTrainData(TRAIN_FILE, BATCH_SIZE, SNTNC_LEN_THRES=SENTENCE_LE
         clusteredSentences.append(list())
 
     clusterCount = len(clusteredSentences)
-    for sentence in sentences:
-        sntncLen = len(sentence)
+    for shuffledIndex in shuffledIndices:
+        sntncLen = len(sentences[shuffledIndex])
         if sntncLen < clusterCount:
-            clusteredSentences[sntncLen].append(sentence)
+            clusteredSentences[sntncLen].append(sentences[shuffledIndex])
 
     # make the len of each cluster % BATCH_SIZE == 0
     for cluster in clusteredSentences:
