@@ -96,6 +96,12 @@ choicesWordList = [set([2, 1]), set([6, 4]), set([2, 5]), set([6, 7])]
 trainImportantLabels = findImportantSntncs(trainLabels, testLabels, choicesWordList)
 print trainImportantLabels
 
+LOAD_FILENAME = "trainImportant.txt"
+with open(LOAD_FILENAME) as file:
+    line = file.readline()
+    rowList = line.rstrip().split(" ")
+    newTrainWordIndices = [trainWordIndices[index] for index in rowList]
+
 aRNN = rnn.rnn( NEURON_NUM_LIST, BPTT_ORDER, LEARNING_RATE, EPOCH_NUM, BATCH_SIZE, LOAD_MODEL_FILENAME )
 aRNN.train(trainImportantLabels)
 
