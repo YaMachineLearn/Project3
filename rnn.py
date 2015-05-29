@@ -125,7 +125,7 @@ class RNN(object):
                                  givens=givens)
         return trainFunction
 
-    def buildTestFunction(self, testDataList):
+    def buildTestFunction(self, testDataList, numOfChoices):
         print >> sys.stderr, 'Compiling test function...'
         # Generating shared arrays for test data list
         print >> sys.stderr, '  generating shared test data...'
@@ -143,7 +143,7 @@ class RNN(object):
                                                                 non_sequences=self.params)
 
         # Computing network output
-        answerChoice = T.argmax(sentenceLogProbability[-1])
+        answerChoices = T.argmax(sentenceLogProbability[-1].reshape((self.batchSize / numOfChoices, numOfChoices)), axis=1)
 
         # Getting word vectors from test data indices
         testInputData = wordUtil.WORD_VECTORS[testDataShared[self.BatchIndex * self.batchSize: (self.BatchIndex + 1) * self.batchSize, 0: sentenceLength - 1]].dimshuffle(1, 0, 2)
@@ -158,7 +158,7 @@ class RNN(object):
 
         print >> sys.stderr, '  generating test function...'
         testFunction = function(inputs=[self.BatchIndex],
-                                outputs=[answerChoice, sentenceLogProbability[-1]],
+                                outputs=[answerChoices, sentenceLogProbability[-1]],
                                 givens=givens)
         return testFunction
 

@@ -54,13 +54,13 @@ class RNNLM(object):
 
         self.saveModel()
 
-    def test(self, batchSize, testData):
+    def test(self, batchSize, numOfChoices, testData):
         print >> sys.stderr, 'Building RNN model for testing...'
         self.params = self.loadModel()
         if self.params == None:
             print >> sys.stderr, '- Warning: running test without any trained models'
         self.testRNN = RNN(self.neuronNumList[0][1], self.neuronNumList[1], self.neuronNumList[2][0], batchSize, self.params)
-        testFunction = self.testRNN.buildTestFunction(testData)
+        testFunction = self.testRNN.buildTestFunction(testData, numOfChoices)
 
         totalTestDataNum = len(testData)
         batchNum = totalTestDataNum / batchSize
@@ -74,8 +74,8 @@ class RNNLM(object):
             sys.stdout.flush()
             t3 = time.time()
 
-            [answerChoice, logProbability] = testFunction(batchIndex)
-            answers.append(answerChoice.item())  # Answer choice is a numpy 0-d array, using .item() to get the value
+            [answerChoices, logProbability] = testFunction(batchIndex)
+            answers.extend(answerChoices.tolist())  # Answer choice is a numpy 0-d array, using .item() to get the value
             # print logProbability
 
             t4 = time.time()
