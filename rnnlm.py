@@ -16,11 +16,27 @@ class RNNLM(object):
         self.trainRNN = None
         self.testRNN = None
 
+    def paddingDataList(self, dataList):
+        totalSentenceNum = len(dataList)
+        totalSentenceLengths = []
+        maxSentenceLength = 1
+        for sentenceIndex in xrange(totalSentenceNum):
+            sentenceLength = len(dataList[sentenceIndex])
+            totalSentenceLengths.append(sentenceLength)
+            if (sentenceLength > maxSentenceLength):
+                maxSentenceLength = sentenceLength
+
+        for sentenceIndex in xrange(totalSentenceNum):
+            dataList[sentenceIndex].extend([0] * (maxSentenceLength - totalSentenceLengths[sentenceIndex]))
+
+        return (np.asarray(dataList, dtype=np.int32), np.asarray(totalSentenceLengths, dtype=np.int32))
+
     def train(self, epochNum, batchSize, bpttOrder, learningRate, trainData):
         print >> sys.stderr, 'Building RNN model for training...'
         self.params = self.loadModel()
         self.trainRNN = RNN(self.neuronNumList[0][1], self.neuronNumList[1], self.neuronNumList[2][0], batchSize, self.params)
-        trainFunction = self.trainRNN.buildTrainFunction(trainData, bpttOrder)
+        (paddedTrainData, trainSentenceLengths) = self.paddingDataList(trainData)
+        trainFunction = self.trainRNN.buildTrainFunction(paddedTrainData, trainSentenceLengths, bpttOrder)
 
         totalTrainDataNum = len(trainData)
         batchNum = totalTrainDataNum / batchSize
@@ -37,13 +53,13 @@ class RNNLM(object):
                 sys.stdout.flush()
                 t3 = time.time()
 
-                sentenceLength = len(trainData[batchIndex * batchSize])
-                for wordIndex in xrange(sentenceLength - 1):
+                maxBatchSentenceLength = np.max(trainSentenceLengths[batchIndex * batchSize: (batchIndex + 1) * batchSize])
+                for wordIndex in xrange(maxBatchSentenceLength - 1):
                     probOutputGiveInput, cost = trainFunction(batchIndex, wordIndex, learningRate)
                     sumBatchCost += cost
 
                 t4 = time.time()
-                averageBatchCost = (sumBatchCost / (sentenceLength - 1))
+                averageBatchCost = (sumBatchCost / (maxBatchSentenceLength - 1))
                 sumEpochCost += averageBatchCost
                 epochProgress = float(batchIndex + 1) / float(batchNum) * 100.
                 sys.stdout.write('\r    Epoch Progress: %2.4f%%, Batch: %d/%d, Avg batch cost: %2.4f, Cost: %2.1fs' % (epochProgress, batchIndex + 1, batchNum, averageBatchCost, t4 - t3))
@@ -60,7 +76,8 @@ class RNNLM(object):
         if self.params == None:
             print >> sys.stderr, '- Warning: running test without any trained models'
         self.testRNN = RNN(self.neuronNumList[0][1], self.neuronNumList[1], self.neuronNumList[2][0], batchSize, self.params)
-        testFunction = self.testRNN.buildTestFunction(testData, numOfChoices)
+        (paddedTestData, testSentenceLengths) = self.paddingDataList(testData)
+        testFunction = self.testRNN.buildTestFunction(paddedTestData, testSentenceLengths, numOfChoices)
 
         totalTestDataNum = len(testData)
         batchNum = totalTestDataNum / batchSize

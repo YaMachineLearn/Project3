@@ -63,31 +63,16 @@ class RNN(object):
     def initLogProbability(self, batchSize):
         return shared(np.zeros((batchSize), dtype=theano.config.floatX), name='logProbability')
 
-    def paddingDataList(self, dataList):
-        totalSentenceNum = len(dataList)
-        totalSentenceLengths = []
-        maxSentenceLength = 1
-        for sentenceIndex in xrange(totalSentenceNum):
-            sentenceLength = len(dataList[sentenceIndex])
-            totalSentenceLengths.append(sentenceLength)
-            if (sentenceLength > maxSentenceLength):
-                maxSentenceLength = sentenceLength
-
-        for sentenceIndex in xrange(totalSentenceNum):
-            dataList[sentenceIndex].extend([0] * (maxSentenceLength - totalSentenceLengths[sentenceIndex]))
-
-        return (dataList, totalSentenceLengths)
-
-    def buildTrainFunction(self, trainDataList, bpttOrder):
+    def buildTrainFunction(self, trainData, trainSentenceLengths, bpttOrder):
         print >> sys.stderr, 'Compiling train function...'
         # Generating shared arrays for train data list
         print >> sys.stderr, '  generating shared train data...'
-        (paddedTrainDataList, trainSentenceLengths) = self.paddingDataList(trainDataList)
-        trainDataShared = shared(np.asarray(paddedTrainDataList, dtype=np.int32))
-        trainSentenceLengthsShared = shared(np.asarray(trainSentenceLengths, dtype=np.int32))
+        trainDataShared = shared(trainData)
+        trainSentenceLengthsShared = shared(trainSentenceLengths)
 
-        # Getting the length of a sentence in the batch
-        sentenceLength = trainSentenceLengthsShared[self.BatchIndex * self.batchSize]
+        # Getting the length of sentences in the batch
+        sentenceLengths = trainSentenceLengthsShared[self.BatchIndex * self.batchSize: (self.BatchIndex + 1) * self.batchSize]
+        maxBatchSentenceLength = T.max(sentenceLengths)
         startWordIndex = T.maximum(0, self.WordIndex - bpttOrder + 1)
 
         # Theano scan
@@ -100,13 +85,13 @@ class RNN(object):
         lastHidden = hiddenStates[-1]
         output = T.nnet.softmax(T.dot(lastHidden, self.params[2]))
         probOutputGivenInput = output[T.arange(self.TrainTarget.shape[0]), self.TrainTarget]
-        cost = -T.mean(T.log(probOutputGivenInput))
+        cost = -T.mean(T.switch(T.lt(self.WordIndex, sentenceLengths), T.log(probOutputGivenInput), 0.))
 
         # Updates for each train function call
         gparams = [T.grad(cost, param) for param in self.params]
         updates = [(param, param - self.LearningRate * gparam) for param, gparam in zip(self.params, gparams)]
         if T.gt(startWordIndex, 0):
-            updates.append((self.hidden, lastHidden) if T.lt(self.WordIndex, sentenceLength - 1) else (self.hidden, self.initHidden(self.batchSize)))
+            updates.append((self.hidden, lastHidden) if T.lt(self.WordIndex, maxBatchSentenceLength - 1) else (self.hidden, self.initHidden(self.batchSize)))
 
         # Getting word vectors from train data indices
         trainInputData = wordUtil.WORD_VECTORS[trainDataShared[self.BatchIndex * self.batchSize: (self.BatchIndex + 1) * self.batchSize, startWordIndex: self.WordIndex + 1]].dimshuffle(1, 0, 2)
@@ -125,16 +110,16 @@ class RNN(object):
                                  givens=givens)
         return trainFunction
 
-    def buildTestFunction(self, testDataList, numOfChoices):
+    def buildTestFunction(self, testData, testSentenceLengths, numOfChoices):
         print >> sys.stderr, 'Compiling test function...'
         # Generating shared arrays for test data list
         print >> sys.stderr, '  generating shared test data...'
-        (paddedTestDataList, testSentenceLengths) = self.paddingDataList(testDataList)
-        testDataShared = shared(np.asarray(paddedTestDataList, dtype=np.int32))
-        testSentenceLengthsShared = shared(np.asarray(testSentenceLengths, dtype=np.int32))
+        testDataShared = shared(testData)
+        testSentenceLengthsShared = shared(testSentenceLengths)
 
         # Getting the length of a sentence in the batch
-        sentenceLength = testSentenceLengthsShared[self.BatchIndex * self.batchSize]
+        sentenceLengths = testSentenceLengthsShared[self.BatchIndex * self.batchSize: (self.BatchIndex + 1) * self.batchSize]
+        maxBatchSentenceLength = T.max(sentenceLengths)
 
         # Theano scan
         [hiddenStates, sentenceLogProbability], _ = theano.scan(fn=self.testRecurrence,
@@ -146,8 +131,8 @@ class RNN(object):
         answerChoices = T.argmax(sentenceLogProbability[-1].reshape((self.batchSize / numOfChoices, numOfChoices)), axis=1)
 
         # Getting word vectors from test data indices
-        testInputData = wordUtil.WORD_VECTORS[testDataShared[self.BatchIndex * self.batchSize: (self.BatchIndex + 1) * self.batchSize, 0: sentenceLength - 1]].dimshuffle(1, 0, 2)
-        testTarget = testDataShared[self.BatchIndex * self.batchSize: (self.BatchIndex + 1) * self.batchSize, 1: sentenceLength].T
+        testInputData = wordUtil.WORD_VECTORS[testDataShared[self.BatchIndex * self.batchSize: (self.BatchIndex + 1) * self.batchSize, 0: maxBatchSentenceLength - 1]].dimshuffle(1, 0, 2)
+        testTarget = testDataShared[self.BatchIndex * self.batchSize: (self.BatchIndex + 1) * self.batchSize, 1: maxBatchSentenceLength].T
 
         givens = [
             (self.Input, testInputData),

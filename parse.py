@@ -34,8 +34,8 @@ def parseData(DATA_FILENAME):
                 
     return dataWordIndices
 
-def parseAndClusterTrainData(TRAIN_FILE, BATCH_SIZE, SNTNC_LEN_THRES=SENTENCE_LENGTH_THRES):
-    # sample usage: parseAndClusterTrainData(TRAIN_FILENAME, 64, 256)
+def parseAndClusterTrainData(TRAIN_FILE, SNTNC_LEN_THRES=SENTENCE_LENGTH_THRES):
+    # sample usage: parseAndClusterTrainData(TRAIN_FILENAME, 64)
     # output: 3-dim list,
     #     form: [ [sentences with len = 0], [sentences with len = 1], ..., sentences with len = 63 ]
     #     ex: [ [ [23,845,568], [4896,4165,159,852,198] ], [[...],[...],[...],[...]], ... ]
@@ -68,12 +68,6 @@ def parseAndClusterTrainData(TRAIN_FILE, BATCH_SIZE, SNTNC_LEN_THRES=SENTENCE_LE
         sntncLen = len(sentences[shuffledIndex])
         if sntncLen < clusterCount:
             clusteredSentences[sntncLen].append(sentences[shuffledIndex])
-
-    # make the len of each cluster % BATCH_SIZE == 0
-    for cluster in clusteredSentences:
-        redundentSntncCount = len(cluster) % BATCH_SIZE
-        for i in xrange(redundentSntncCount):
-            cluster.pop()
 
     dataWordIndices = list()
 

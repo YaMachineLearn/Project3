@@ -12,8 +12,8 @@ TEST_FILENAME = "data/smallTest/testing.txt"
 
 # Neural Network Model saving and loading file name
 SAVE_MODEL_FILENAME = "models/rnn.model"
-# LOAD_MODEL_FILENAME = None #"models/rnn.model" <- Change this if you want to train from an existing model
-LOAD_MODEL_FILENAME = "models/rnn.model"
+LOAD_MODEL_FILENAME = None #"models/rnn.model" <- Change this if you want to train from an existing model
+# LOAD_MODEL_FILENAME = "models/rnn.model"
 
 # Result output csv file
 OUTPUT_CSV_FILENAME = "output/result.csv"
@@ -35,11 +35,11 @@ wordUtil.parseWordVectors(WORD_VECTORS_FILENAME)
 t1 = time.time()
 print '...costs', t1 - t0, 'seconds'
 
-# print 'Parsing training data...'
-# t0 = time.time()
-# trainWordIndices = parse.parseAndClusterTrainData(TRAIN_FILENAME, TRAIN_BATCH_SIZE)
-# t1 = time.time()
-# print '...costs', t1 - t0, 'seconds'
+print 'Parsing training data...'
+t0 = time.time()
+trainWordIndices = parse.parseAndClusterTrainData(TRAIN_FILENAME)
+t1 = time.time()
+print '...costs', t1 - t0, 'seconds'
 
 print 'Parsing testing data...'
 t0 = time.time()
@@ -50,11 +50,11 @@ print '...costs', t1 - t0, 'seconds'
 NEURON_NUM_LIST = [ HIDDEN_LAYER + [ wordUtil.WORD_VECTOR_SIZE ] ] + HIDDEN_LAYER + [ [wordUtil.TOTAL_WORDS] ]
 aRNNLM = RNNLM(NEURON_NUM_LIST, SAVE_MODEL_FILENAME, LOAD_MODEL_FILENAME)
 
-# print 'Training...'
-# t0 = time.time()
-# aRNNLM.train(EPOCH_NUM, TRAIN_BATCH_SIZE, BPTT_ORDER, LEARNING_RATE, trainWordIndices)
-# t1 = time.time()
-# print '...costs', t1 - t0, 'seconds'
+print 'Training...'
+t0 = time.time()
+aRNNLM.train(EPOCH_NUM, TRAIN_BATCH_SIZE, BPTT_ORDER, LEARNING_RATE, trainWordIndices)
+t1 = time.time()
+print '...costs', t1 - t0, 'seconds'
 
 print 'Testing...'
 t0 = time.time()
@@ -62,5 +62,5 @@ answers = aRNNLM.test(TEST_BATCH_SIZE, NUM_OF_CHOICES, testWordIndices)
 t1 = time.time()
 print '...costs', t1 - t0, 'seconds'
 
-# print 'Writing to csv file...'
-# parse.outputCsvFileFromAnswerNumbers(answers, OUTPUT_CSV_FILENAME)
+print 'Writing to csv file...'
+parse.outputCsvFileFromAnswerNumbers(answers, OUTPUT_CSV_FILENAME)
