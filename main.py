@@ -28,10 +28,17 @@ currentEpoch = 0
 print 'Parsing training data...'
 t0 = time.time()
 
-trainWordIndices = parse.parseData(TRAIN_FILENAME)
+trainWordIndicesOrigin = parse.parseData(TRAIN_FILENAME)
 
 t1 = time.time()
 print '...costs ', t1 - t0, ' seconds'
+
+LOAD_FILENAME = "trainImportant.txt"
+with open(LOAD_FILENAME) as file:
+    line = file.readline()
+    rowList = line.rstrip().split(" ")
+    trainWordIndices = [trainWordIndicesOrigin[index] for index in rowList]
+
 
 # NEURON_NUM_LIST = [ HIDDEN_LAYER + [ wordUtil.WORD_VECTOR_SIZE ] ] + HIDDEN_LAYER + [ wordUtil.TOTAL_WORDS ]
 NEURON_NUM_LIST = [ HIDDEN_LAYER + [ wordUtil.WORD_VECTOR_SIZE ] ] + HIDDEN_LAYER + [ [ wordUtil.WORD_CLASS_SIZE, wordUtil.WORD_CLASS_NUM ] ]
